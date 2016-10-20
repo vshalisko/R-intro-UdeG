@@ -1,0 +1,242 @@
+---
+title: "Taller de R básico. Dia 4."
+author: "Viacheslav Shalisko"
+date: "20 de octubre de 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### A. Cargar la tabla de datos
+#### Estructura de datos (tabla `Datos_del_censo.csv`):  
+1. *Centro* - código del CU  
+2. *Especie* - nombre científico  
+3. *Codigo* - identificador único del arbol  
+4. *AB* - área basal del árbol (dm^2^)  
+5. *DTr* - diametro del tronco equivalente (cm)  
+6. *Alt* - estatura del árbol (m)  
+7. *DCop* - diametro promedio de la copa (m)  
+8. *ExcCop* - excentricidad de la copa  
+
+```{r}
+arbolado <- read.csv("Materiales/Datos_del_censo.csv")
+```
+
+### Partes B. y C. fueron tratados en la sesión anterior.
+***
+Continuación
+
+### D. Gráficas simples
+#### Histogramas
+
+```{r fig.width=8, fig.height=4, warning=FALSE}
+H0 <- hist(arbolado$Alt, 
+     col = c("lightblue","coral"),
+     xlab = "Clases de estatura del árbol (m)", ylab = "Frecuencia",
+     main = "Histográma de estaturas",
+     breaks = c(0,2.5,5,7.5,10,20,30), prob = FALSE)
+str(H0)
+```
+
+```{r fig.width=8, fig.height=4, warning=FALSE}
+barplot(H0$counts, space = 0,
+     col = c("lightblue","coral"),
+     xlab = "Clases de estatura del árbol (m)", ylab = "Frecuencia",
+     main = "Histográma de estaturas")
+```
+
+```{r fig.width=8, fig.height=4, warning=FALSE}
+B0 <- barplot(H0$counts, space = 0, ylim = c(-100,1700),
+     col = c("lightblue","coral"),
+     xlab = "Clases de estatura del árbol (m)", ylab = "Frecuencia",
+     main = "Histográma de estaturas")
+axis(at = seq(from = 0, to = 6, by = 1), 
+     labels = c(0,2.5,5,7.5,10,20,30), side = 1)
+text(B0, H0$counts + 0.05 * max(H0$counts), labels=round(H0$counts), cex = 0.8)
+```
+
+```{r fig.width=8, fig.height=5, warning=FALSE}
+par(mfcol = c(1, 2))
+
+hist(arbolado$Alt, 
+     col = c("lightblue"),
+     xlab = "Clases de estatura del árbol (m)", ylab = "Frecuencia",
+     main = "Histográma de estaturas", prob = FALSE)
+
+plot(density(arbolado$Alt, na.rm = TRUE), 
+     col = c("lightblue"), lty=1, lwd=2, 
+     xlab = "Estatura del árbol (m)", ylab = "Densidad",
+     main = "Distribución de estaturas")
+```
+
+```{r fig.width=8, fig.height=4, warning=FALSE}
+
+H1 <- hist(arbolado$Alt, ylim = c(-0.005,0.14),
+     col = c("lightblue"),
+     xlab = "Clases de estatura del árbol (m)", ylab = "Densidad",
+     main = "Histográma de estaturas con gráfica de densidad de distribución", prob = TRUE)
+
+densidad <- density(arbolado$Alt, na.rm = TRUE)
+lines(densidad, col = c("coral"), lty=1, lwd=2)
+
+H2 <- hist(arbolado$Alt, ylim = c(-100,1700),
+     col = c("lightblue"),
+     xlab = "Clases de estatura del árbol (m)", ylab = "Frecuencia",
+     main = "Histográma de estaturas con gráfica de densidad de distribución", prob = FALSE)
+
+densidad <- density(arbolado$Alt, na.rm = TRUE)
+densidad$y <- densidad$y*diff(H2$mids[1:2])*length(arbolado$Alt) 
+lines(densidad, col = c("coral"), lty=1, lwd=2)
+```
+
+```{r fig.width=8, fig.height=4, warning=FALSE}
+plot(H1, col = c("lightblue"),
+     xlab = "Clases de estatura del árbol (m)", ylab = "Frecuencia",
+     main = "Histográma de estaturas con gráfica de distribución normal")
+
+xfit<-seq(min(arbolado$Alt, na.rm = TRUE),max(arbolado$Alt, na.rm = TRUE),length=100)
+yfit<-dnorm(xfit,mean=mean(arbolado$Alt, na.rm = TRUE),sd=sd(arbolado$Alt, na.rm = TRUE)) 
+yfit <- yfit*diff(H1$mids[1:2])*length(arbolado$Alt) 
+lines(xfit, yfit, col="blue", lwd=2)
+```
+
+#### Gráficas QQ
+
+```{r fig.width=6, fig.height=5, warning=FALSE}
+qqnorm(arbolado$Alt, col = "lightblue")
+qqline(arbolado$Alt, col = "red")
+```
+
+#### Gráficas de caja
+
+```{r fig.width=6, fig.height=5, warning=FALSE}
+boxplot(arbolado$Alt ~ arbolado$Centro, 
+        col = c("lightblue","coral"),
+        main = "Estatura de árboles por centro",
+        ylab = "Estatura (m)")
+
+boxplot(log(arbolado$AB) ~ arbolado$Centro, 
+        col = c("lightblue","coral"),
+        main = "Área basal de árboles por centro",
+        ylab = "Log de Área basal (dm²)")
+```
+
+#### Gráficas de puntos
+
+```{r fig.width=6, fig.height=4.5, warning=FALSE}
+plot(arbolado$Alt ~ arbolado$DTr, 
+        col = "coral",
+        main = "Estatura de árboles vs. diametro del tronco",
+        ylab = "Estatura (m)", xlab = "Diametro del tronco (cm)")
+
+plot(arbolado$Alt ~ log(arbolado$DTr), 
+        col = "coral",
+        main = "Estatura de árboles vs. diametro del tronco",
+        ylab = "Estatura (m)", xlab = "Log del Diametro del tronco (cm)")
+```
+
+Graficas de puntos pueden incluir grupos de datos
+
+```{r fig.width=8, fig.height=6, warning=FALSE}
+colors <- c("coral","darkblue","lightblue","darkgreen")
+color.index <- as.numeric(arbolado$Centro)
+
+plot(arbolado$Alt ~ log(arbolado$DTr), 
+        col = colors[color.index], pch = 20,
+        main = "Estatura de árboles vs. diametro del tronco",
+        ylab = "Estatura (m)", xlab = "Log del Diametro del tronco (cm)")
+
+legend( 1.5, 27, levels(arbolado$Centro), 
+      bty = "n", pch = c(19,19,19,19), col = colors)
+```
+
+### E. Estructuras de control
+#### Funciones
+
+Sintáxis general de definición de las funciones  
+
+> nombre_de_función <- **function**(variables_de_entrada) {  
+>	  cuerpo de función donde se usan las variables de entrada y se genera valor de salida  
+> }
+
+
+Existen la dos formas de definición de las funciones:  
+a) en una sola linea  
+b) con el bloque encerrado en los símbolos `{}`  
+Las funciones pueden ser anónimas o tener el nombre
+
+```{r}
+# función para quetar los espacios en principio y al final de una cadena de texto
+trim <- function(x) gsub("^\\s+|\\s+$", "", x)
+
+# función para poner primera letra de una cadena de texto como mayuscula y otras como minusculas
+simpleCap <- function(x) {
+    paste(toupper(substr(x, 1, 1)), tolower(substr(x, 2, nchar(x))), sep="")
+}
+```
+
+Aplicacion de las funciones para depurar nombres de las especies
+
+```{r}
+lista_especies <- unique(as.character(arbolado$Especie))
+length(lista_especies)
+
+arbolado$Especie <- sapply(as.character(arbolado$Especie), simpleCap)
+arbolado$Especie <- sapply(arbolado$Especie, trim)
+lista_depurada_especies <- unique(arbolado$Especie)
+arbolado$Especie <- as.factor(arbolado$Especie)
+
+length(lista_depurada_especies)
+```
+
+#### Elementos de control de flujo de ejecución
+1. `if`, `else`, `else if` - estructuras condicionales  
+2. `for` - ciclos (loops, bucles) con un número predeterminado de iteraciones  
+3. `while` - ciclos con un número indefinido de iteraciones  
+4. `repeat` - ciclos con un número infinito de iteraciones (se usan rara vez, principalmente en elementos de interface de usuario)  
+5. `next`, `return` - elementos que permiten interrimpir o saltar iteraciones en los ciclos  
+
+Sintáxis general de las estructuras condicionales  
+
+> **if**(condición lógica) {  
+>	  código para caso que la condición se cumple  
+> } **else** {  
+>   código para caso que la condición no se cumple  
+> }  
+
+Sintáxis general de los ciclos con numero predeterminado de elementos   
+
+> **for**(iterador **in** rango_de_posibles_valores_del_iterador) {  
+>	  código del cuerpo de ciclo, donde se puede utilizar iterador como una variable  
+> }    
+
+Ejemplo:
+
+```{r fig.width=8, fig.height=4, results="asis"}
+
+for(i in 1:length(lista_depurada_especies)){
+    # seleccionar registros que corresponden a una especie determinada
+    tabla_especie <- arbolado[arbolado$Especie == lista_depurada_especies[i],]
+    # verificar que número de árboles de la especie es mayór que 50
+    if(dim(tabla_especie)[1] > 50) {
+       # imprimir nombre de especie y número de árboles
+       cat(paste("<h4><i>",lista_depurada_especies[i],"</i></h4>"))
+       cat(paste('<pre class="r"><code>',"n =",dim(tabla_especie)[1],"</code></pre>"))
+       # especificar lienzo para tres graficas
+       par(mfcol = c(1, 3))
+       # dibujar tres gráficas
+       boxplot(tabla_especie$Alt, 
+          col = "coral", main = "Estatura de árboles", ylab = "Estatura (m)")
+       boxplot(log(tabla_especie$DTr), 
+          col = "lightblue", main = "Diametro del tronco", ylab = "Log del diametro de tronco (cm)")    
+      plot(tabla_especie$Alt ~ log(tabla_especie$DTr), 
+          col = "coral",  main = "Estatura vs. diametro del tronco",
+          ylab = "Estatura (m)", xlab = "Log del diametro del tronco (cm)")    
+    }
+}
+
+```
+
+

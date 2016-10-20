@@ -1,0 +1,140 @@
+---
+title: "Taller de R básico. Dia 3."
+author: "Viacheslav Shalisko"
+date: "19 de octubre de 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### A. Cargar la tabla de datos
+#### Estructura de datos (tabla `Datos_del_censo.csv`):  
+1. *Centro* - código del CU  
+2. *Especie* - nombre científico  
+3. *Codigo* - identificador único del arbol  
+4. *AB* - área basal del árbol (dm^2^)  
+5. *DTr* - diametro del tronco equivalente (cm)  
+6. *Alt* - estatura del árbol (m)  
+7. *DCop* - diametro promedio de la copa (m)  
+8. *ExcCop* - excentricidad de la copa  
+
+```{r}
+arbolado <- read.csv("Materiales/Datos_del_censo.csv")
+dim(arbolado)
+```
+
+```{r}
+head(arbolado)
+tail(arbolado)
+```
+
+```{r}
+str(arbolado)
+levels(arbolado$Centro)
+```
+
+### B. Estadistica descriptiva
+#### Resumen 
+
+```{r}
+summary(arbolado[,c(1,2,4:8)])
+```
+
+Las funciones básicas de la estadistica descriptiva incluyen:  
+1. Promedio y mediana - `mean()`, `median()`  
+2. Mínimo, máximo y rango - `min()`, `max()`, `range()`  
+3. Desviación estandar y varianza - `sd()`, `var()`  
+4. Quantiles y rango intercuartilico - `quantile()`, `IQR()`  
+5. Suma y número de elementos - `sum()`, `length()`
+
+```{r}
+summary(arbolado$AB)
+range(arbolado$AB)
+quantile(arbolado$AB)
+IQR(arbolado$AB)
+var(arbolado$AB)
+sqrt(var(arbolado$AB))
+sd(arbolado$AB)
+```
+
+```{r}
+probabilidades <- c(0.01,0.05,0.1,0.5,0.9,0.95,0.99)
+quantile(arbolado$AB, probs = probabilidades)
+
+boxplot.stats(arbolado$AB)$stats
+boxplot.stats(arbolado$AB, coef = 3)$stats
+```
+
+### C. Algunas funciones de control
+#### Estadistica por grupos 
+
+```{r}
+aggregate(arbolado$AB ~ arbolado$Centro, FUN = sum)
+aggregate(arbolado$AB ~ arbolado$Centro, FUN = length)
+aggregate(arbolado$AB ~ arbolado$Centro, FUN = mean)
+aggregate(arbolado$AB ~ arbolado$Centro, FUN = range)
+```
+
+#### Estadistica por columnas y/o grupos
+
+El grupo de funciones apply permite realizar operaciones de forma cíclica sin necesidad de definir un ciclo de manera formal:  
+1. `lapply()` - aplicar una función a cada elemento de una lista, resultado es una lista de mismo largo que lista de entrada  
+2. `sapply()` - lo mismo que `lapply()`, pero con resultado simplificado (vector, matriz o array)  
+3. `apply()` - aplicar una función sobre dimensiones de un matriz de datos  
+4. `tapply()` - aplicar una función sobre grupos definidos en un vector, similar a `aggregate()`    
+5. `mapply()` - versión multivariante de `tapply()`     
+
+##### Compara `tapply()` y `aggregate()`
+
+```{r}
+tapply(arbolado$AB, arbolado$Centro, FUN = mean)
+aggregate(arbolado$AB ~ arbolado$Centro, FUN = mean)
+```
+
+##### Compara `lapply()` y `sapply()`
+
+```{r}
+lapply(arbolado[,4:8],sd,na.rm = TRUE)
+sapply(arbolado[,4:8],sd,na.rm = TRUE)
+sapply(arbolado[,4:8],range,na.rm = TRUE)
+sapply(arbolado[,4:8],function(x) length(x[!is.na(x)]))
+```
+
+Nota que el parámetro `na.rm = TRUE` permite omitir valores sin datos en las funciones
+
+```{r}
+sd(arbolado$Alt, na.rm = TRUE)
+```
+
+
+### D. Gráficas simples
+#### Histogramas
+
+```{r}
+hist(arbolado$Alt)
+```
+
+Las graficas pueden ser controlados por medio de una gran cantidad de parámetros.
+
+```{r fig.width=8, fig.height=4, warning=FALSE}
+hist(arbolado$Alt, 
+     col = "lightgray",
+     xlab = "Clases de estatura del árbol (m)", ylab = "Frecuencia",
+     main = "Histográma de estaturas")
+```
+
+```{r fig.width=8, fig.height=4, warning=FALSE}
+H0 <- hist(arbolado$Alt, 
+     col = c("lightblue","coral"),
+     xlab = "Clases de estatura del árbol (m)", ylab = "Frecuencia",
+     main = "Histográma de estaturas",
+     breaks = c(0,2.5,5,7.5,10,20,30), prob = FALSE)
+str(H0)
+```
+
+*** 
+
+A continuar el día Jueves 20 de octubre del 2016
+
