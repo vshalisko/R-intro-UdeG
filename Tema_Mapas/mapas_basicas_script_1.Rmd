@@ -1,0 +1,97 @@
+---
+title: "Clase Mapas básicas en R"
+author: "Viacheslav Shalisko"
+date: "15 de noviembre de 2016"
+output: html_document
+---
+
+# Simple mapa del Mundo
+
+```{r fig.width=12, fig.height=10}
+library(maps)
+map('world', fill = TRUE, col = 2:7)
+
+# otra proyección y lineas de cuadrantes
+library(mapproj)
+map('world', fill = TRUE, col = 2:7, projection = "globular")
+my_grid <- map('world', plot = FALSE)
+map.grid(my_grid)
+```
+
+# Mapa de México y Centroamérica
+
+```{r fig.width=12, fig.height=10}
+
+# definir limites
+ext_vector <- c(-107.008472222,-72.9807502222,5.99152777778,24.0179697778)
+
+# mapa principal
+my_map <- map('world', border = "darkgray", fill = TRUE, 
+              col = c("coral","lightgreen","lightyellow","lightblue","tan"), 
+              xlim = ext_vector[1:2], ylim = ext_vector[3:4])
+
+# titulo, ejes y escala
+title("Centroamérica y sur de México")
+map.axes(cex.axis = 0.9)
+map.scale(ratio = FALSE)
+
+# agregar capa de lagos
+map('lakes', add=TRUE, fill=TRUE, col="royalblue", boundary="darkgray")
+
+# agregar nombres de paises, pero omitir islas y  otros fragmentos
+my_names <- my_map$names
+my_good_names <- my_names[!grepl(":+", my_names)]
+map.text('world', regions = my_good_names, exact = TRUE,
+         cex = 0.85, add = TRUE)
+
+```
+
+# Cargar los archivos shapefile y visualizarlos
+
+```{r  fig.width=12, fig.height=10}
+library(maptools)
+municipios <- readShapePoly("datos/Municipios.shp")
+estados <- readShapePoly("datos/Estados.shp")
+plot(municipios, axes = TRUE)
+plot(estados, border = "red", add = TRUE)
+```
+
+# Cuadro en proyección LCC de INEGI
+
+```{r fig.width=12, fig.height=10}
+library(maptools)
+library(rgdal)
+library(sp)
+
+palette(terrain.colors(32))
+
+mi_crs <- CRS("+proj=lcc +lat_1=17.5 +lat_2=29.5 +lat_0=12 +lon_0=-102 +x_0=2500000 +y_0=0 +datum=WGS84")
+estados_lcc <- readShapePoly("datos/Estados.shp", proj4string = mi_crs)
+
+plot(estados_lcc, axes = TRUE, border = "blue", col = estados_lcc$NOM_ENT)
+legend("bottomleft", legend = levels(estados_lcc$NOM_ENT), 
+       fill = palette(terrain.colors(32)), bty = "n", cex = 0.7)
+
+levels(estados_lcc$NOM_ENT)
+```
+
+# Cuadro reproyectado a coordenadas geográficas con puntos de Guadalajara y Ciudad de México
+
+```{r fig.width=12, fig.height=10}
+mi_crs2 <- CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
+estados_geo <- spTransform(estados_lcc, mi_crs2)
+
+lista_lat <- c(20.65,19.41)
+lista_lon <- c(-103.35,-99.13)
+puntos <- data.frame(lista_lon,lista_lat)
+names(puntos) <- c("Longitud","Latitud")
+
+puntos_sp <- SpatialPoints(puntos, proj4string = mi_crs2)
+puntos_sp
+
+plot(estados_geo, axes = TRUE, border = "blue", col = estados_geo$NOM_ENT)
+points(puntos_sp$Longitud, puntos_sp$Latitud, pch = 19, col = "red", cex = 2)
+legend("bottomleft", legend = levels(estados_geo$NOM_ENT), 
+       fill = palette(terrain.colors(32)), bty = "n", cex = 0.7)
+
+```
