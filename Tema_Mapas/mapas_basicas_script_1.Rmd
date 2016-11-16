@@ -36,7 +36,7 @@ map.axes(cex.axis = 0.9)
 map.scale(ratio = FALSE)
 
 # agregar capa de lagos
-map('lakes', add=TRUE, fill=TRUE, col="royalblue", boundary="darkgray")
+map('lakes', add = TRUE, fill = TRUE, col = "royalblue", border = "lightgray")
 
 # agregar nombres de paises, pero omitir islas y  otros fragmentos
 my_names <- my_map$names
@@ -58,6 +58,26 @@ plot(estados, border = "red", add = TRUE)
 
 # Cuadro en proyección LCC de INEGI
 
+Nota sobre proyeccion LCC usada por INEGI:  
+De acuerdo con la descripción en la 
+[Guía para asignar sistemas de coordenadas](http://www.inegi.org.mx/geo/contenidos/mapadigital/doc/asignar_sistema_coordenadas.pdf), la proyección LCC de INEGI cuenta con siguientes parámetros:  
+
+> Datum International Terrestrial Reference Frame 1992 (ITRF92 ) (epsg:6651)  
+> Elipsoide GRS 1980 (epsg:7019)  
+> Proyección Lambert Conformal Conic 2SP (epsg:9802)  
+> Falso este 2500000  
+> Falso norte 0  
+> Paralelo estándar 1 17°30'0.00" N  
+> Paralelo estándar 2 29°30'0.00" N  
+> Meridiano central 102°00'0.00" W  
+> Latitud origen 12° 00'0.00" W  
+> Factor de escala 1  
+> Unidad lineal Metros  
+
+Para propósitos prácticos se puede considerara que el Datum ITRF92 coincide con el datus WGS1984, ya que la diferencia entre estos datums en mayor parte de la Tierra no supera 10 cm (<ftp://itrf.ensg.ign.fr/pub/itrf/WGS84.TXT>).  
+La cadena que empleamos para definir la proyección LCC de INEGI en este caso es `"+proj=lcc +lat_1=17.5 +lat_2=29.5 +lat_0=12 +lon_0=-102 +x_0=2500000 +y_0=0 +units=m +ellps=GRS80 +datum=WGS84"`.  
+
+
 ```{r fig.width=12, fig.height=10}
 library(maptools)
 library(rgdal)
@@ -65,7 +85,7 @@ library(sp)
 
 palette(terrain.colors(32))
 
-mi_crs <- CRS("+proj=lcc +lat_1=17.5 +lat_2=29.5 +lat_0=12 +lon_0=-102 +x_0=2500000 +y_0=0 +datum=WGS84")
+mi_crs <- CRS("+proj=lcc +lat_1=17.5 +lat_2=29.5 +lat_0=12 +lon_0=-102 +x_0=2500000 +y_0=0 +units=m +ellps=GRS80 +datum=WGS84")
 estados_lcc <- readShapePoly("datos/Estados.shp", proj4string = mi_crs)
 
 plot(estados_lcc, axes = TRUE, border = "blue", col = estados_lcc$NOM_ENT)
