@@ -1,0 +1,241 @@
+---
+title: "Estudio de reflectividad en campos de agave: tratamiento inicial"
+author: "QUETZALCOATL SINUE & V. Shalisko"
+date: "3 de mayo de 2017"
+output: html_document
+
+---
+
+#### Cargar bibliotecas necesarias
+
+```{r}
+library(foreign)
+```
+
+#### Cargar las tablas con datos de muestreo de imagenes 2013, 2014, 2015
+
+```{r}
+mydata2013<-read.dbf("Clip_PunRas_Buffer_45m_inters_2013.dbf")
+mydata2013[mydata2013["FECH_SIEM"] == 0,"FECH_SIEM"] <- NA # sustituir fecha de siembra 0 por NA
+
+mydata2014<-read.dbf("Clip_punRas_Buffer_45m_intersec_2014.dbf")
+mydata2014[mydata2014["FECH_SIEM"] == 0,"FECH_SIEM"] <- NA # sustituir fecha de siembra 0 por NA
+
+mydata2015<-read.dbf("Clip_punRas_Buffer_45m_intersec_2015.dbf")
+mydata2015[mydata2015["FECH_SIEM"] == 0,"FECH_SIEM"] <- NA # sustituir fecha de siembra 0 por NA
+
+
+# Prueba opcional: para seleccionar solo datos con agaves sin vegetación
+# mydata2013 <- subset(mydata2013, PORC_VEG == 0)   
+# mydata2014 <- subset(mydata2014, PORC_VEG == 0)
+# mydata2015 <- subset(mydata2015, PORC_VEG == 0)
+
+```
+
+## Graficas de relación entre rango de pendiente y reflectividad en bandas
+### Muestreo de tres imagenes
+
+```{r, echo=TRUE, fig.width=12, fig.height=6}
+par(mfcol = c(1, 3), cex =1)
+boxplot(mydata2015[,"banda2"] ~ factor(mydata2015[,"Rango"], levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 2 2015",col=rainbow(11))
+boxplot(mydata2014[,"banda_2"] ~ factor(mydata2014[,"Rango"],levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 2 2014", col=rainbow(11))
+boxplot(mydata2013[,"BANDA_2"] ~factor(mydata2013[,"Rango"],levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 2 2013", col=rainbow(11))
+boxplot(mydata2015[,"banda3"] ~ factor(mydata2015[,"Rango"], levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 3 2015",col=rainbow(11))
+boxplot(mydata2014[,"banda_3"] ~ factor(mydata2014[,"Rango"],levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 3 2014", col=rainbow(11))
+boxplot(mydata2013[,"BANDA_3"] ~ factor(mydata2013[,"Rango"],levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 3 2013", col=rainbow(11))
+boxplot(mydata2015[,"banda4"] ~ factor(mydata2015[,"Rango"], levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 4 2015",col=rainbow(11))
+boxplot(mydata2014[,"banda_4"] ~ factor(mydata2014[,"Rango"],levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 4 2014", col=rainbow(11))
+boxplot(mydata2013[,"BANDA_4"] ~ factor(mydata2013[,"Rango"],levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 4 2013", col=rainbow(11))
+boxplot(mydata2015[,"banda5"] ~factor(mydata2015[,"Rango"], levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 5 2015",col=rainbow(11))
+boxplot(mydata2014[,"banda_5"] ~ factor(mydata2014[,"Rango"],levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 5 2014", col=rainbow(11))
+boxplot(mydata2013[,"BANDA_5"] ~ factor(mydata2013[,"Rango"],levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 5 2013", col=rainbow(11))
+boxplot(mydata2015[,"banda6"] ~ factor(mydata2015[,"Rango"], levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 6 2015",col=rainbow(11))
+boxplot(mydata2014[,"banda_6"] ~ factor(mydata2014[,"Rango"],levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 6 2014", col=rainbow(11))
+boxplot(mydata2013[,"BANDA_6"] ~factor(mydata2013[,"Rango"],levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 6 2013", col=rainbow(11))
+boxplot(mydata2015[,"banda7"] ~ factor(mydata2015[,"Rango"], levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 7 2015",col=rainbow(11))
+boxplot(mydata2014[,"banda_7"] ~ factor(mydata2014[,"Rango"],levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 7 2014", col=rainbow(11))
+boxplot(mydata2013[,"BANDA_7"] ~factor(mydata2013[,"Rango"],levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 7 2013", col=rainbow(11))
+```
+
+## Graficas de relación entre porcentaje de malezas y reflectividad en bandas
+### Muestreo de tres imagenes
+
+```{r, echo=TRUE, fig.width=12, fig.height=6}
+par(mfcol = c(1, 3), cex =1)
+boxplot(mydata2015[,"banda2"] ~ factor(mydata2015[,"PORC_VEG"], levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 2 2015",col=rainbow(11,s = 0.5))
+boxplot(mydata2014[,"banda_2"] ~ factor(mydata2014[,"PORC_VEG"],levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 2 2014", col=rainbow(11,s = 0.5))
+boxplot(mydata2013[,"BANDA_2"] ~factor(mydata2013[,"PORC_VEG"],levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 2 2013", col=rainbow(11,s = 0.5))
+boxplot(mydata2015[,"banda3"] ~ factor(mydata2015[,"PORC_VEG"], levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 3 2015",col=rainbow(11,s = 0.5))
+boxplot(mydata2014[,"banda_3"] ~ factor(mydata2014[,"PORC_VEG"],levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 3 2014", col=rainbow(11,s = 0.5))
+boxplot(mydata2013[,"BANDA_3"] ~ factor(mydata2013[,"PORC_VEG"],levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 3 2013", col=rainbow(11,s = 0.5))
+boxplot(mydata2015[,"banda4"] ~ factor(mydata2015[,"PORC_VEG"], levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 4 2015",col=rainbow(11,s = 0.5))
+boxplot(mydata2014[,"banda_4"] ~ factor(mydata2014[,"PORC_VEG"],levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 4 2014", col=rainbow(11,s = 0.5))
+boxplot(mydata2013[,"BANDA_4"] ~ factor(mydata2013[,"PORC_VEG"],levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 4 2013", col=rainbow(11,s = 0.5))
+boxplot(mydata2015[,"banda5"] ~factor(mydata2015[,"PORC_VEG"], levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 5 2015",col=rainbow(11,s = 0.5))
+boxplot(mydata2014[,"banda_5"] ~ factor(mydata2014[,"PORC_VEG"],levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 5 2014", col=rainbow(11,s = 0.5))
+boxplot(mydata2013[,"BANDA_5"] ~ factor(mydata2013[,"PORC_VEG"],levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 5 2013", col=rainbow(11,s = 0.5))
+boxplot(mydata2015[,"banda6"] ~ factor(mydata2015[,"PORC_VEG"], levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 6 2015",col=rainbow(11,s = 0.5))
+boxplot(mydata2014[,"banda_6"] ~ factor(mydata2014[,"PORC_VEG"],levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 6 2014", col=rainbow(11,s = 0.5))
+boxplot(mydata2013[,"BANDA_6"] ~factor(mydata2013[,"PORC_VEG"],levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 6 2013", col=rainbow(11,s = 0.5))
+boxplot(mydata2015[,"banda7"] ~ factor(mydata2015[,"PORC_VEG"], levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 7 2015",col=rainbow(11,s = 0.5))
+boxplot(mydata2014[,"banda_7"] ~ factor(mydata2014[,"PORC_VEG"],levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 7 2014", col=rainbow(11,s = 0.5))
+boxplot(mydata2013[,"BANDA_7"] ~factor(mydata2013[,"PORC_VEG"],levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 7 2013", col=rainbow(11,s = 0.5))
+```
+
+## Graficas de relación entre fecha de siembra de agave y reflectividad en bandas
+### Muestreo de tres imagenes
+
+```{r, echo=TRUE, fig.width=12, fig.height=6}
+par(mfcol = c(1, 3), cex =1)
+boxplot(mydata2015[,"banda2"] ~ factor(mydata2015[,"FECH_SIEM"], levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 2 2015",col=cm.colors(11))
+boxplot(mydata2014[,"banda_2"] ~ factor(mydata2014[,"FECH_SIEM"],levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 2 2014",col=cm.colors(11))
+boxplot(mydata2013[,"BANDA_2"] ~factor(mydata2013[,"FECH_SIEM"],levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 2 2013",col=cm.colors(11))
+boxplot(mydata2015[,"banda3"] ~ factor(mydata2015[,"FECH_SIEM"], levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 3 2015",col=cm.colors(11))
+boxplot(mydata2014[,"banda_3"] ~ factor(mydata2014[,"FECH_SIEM"],levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 3 2014",col=cm.colors(11))
+boxplot(mydata2013[,"BANDA_3"] ~ factor(mydata2013[,"FECH_SIEM"],levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 3 2013",col=cm.colors(11))
+boxplot(mydata2015[,"banda4"] ~ factor(mydata2015[,"FECH_SIEM"], levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 4 2015",col=cm.colors(11))
+boxplot(mydata2014[,"banda_4"] ~ factor(mydata2014[,"FECH_SIEM"],levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 4 2014",col=cm.colors(11))
+boxplot(mydata2013[,"BANDA_4"] ~ factor(mydata2013[,"FECH_SIEM"],levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 4 2013",col=cm.colors(11))
+boxplot(mydata2015[,"banda5"] ~factor(mydata2015[,"FECH_SIEM"], levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 5 2015",col=cm.colors(11))
+boxplot(mydata2014[,"banda_5"] ~ factor(mydata2014[,"FECH_SIEM"],levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 5 2014",col=cm.colors(11))
+boxplot(mydata2013[,"BANDA_5"] ~ factor(mydata2013[,"FECH_SIEM"],levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 5 2013",col=cm.colors(11))
+boxplot(mydata2015[,"banda6"] ~ factor(mydata2015[,"FECH_SIEM"], levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 6 2015",col=cm.colors(11))
+boxplot(mydata2014[,"banda_6"] ~ factor(mydata2014[,"FECH_SIEM"],levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 6 2014",col=cm.colors(11))
+boxplot(mydata2013[,"BANDA_6"] ~factor(mydata2013[,"FECH_SIEM"],levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 6 2013",col=cm.colors(11))
+boxplot(mydata2015[,"banda7"] ~ factor(mydata2015[,"FECH_SIEM"], levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 7 2015",col=cm.colors(11))
+boxplot(mydata2014[,"banda_7"] ~ factor(mydata2014[,"FECH_SIEM"],levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 7 2014",col=cm.colors(11))
+boxplot(mydata2013[,"BANDA_7"] ~factor(mydata2013[,"FECH_SIEM"],levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 7 2013",col=cm.colors(11))
+```
+
+## Normalización de mediana de reflectividad en bandas para hacer compatibles datos de muestreo de las tres imagenes
+
+```{r}
+# normalización de mediana consiste en que cada una de las muestras se ajusta sobre la mediana
+
+mydata2013_b2n <- mydata2013[,"BANDA_2"] - median(mydata2013[,"BANDA_2"])
+mydata2014_b2n <- mydata2014[,"banda_2"] - median(mydata2014[,"banda_2"])
+mydata2015_b2n <- mydata2015[,"banda2"] - median(mydata2015[,"banda2"])
+
+mydata2013_b3n <- mydata2013[,"BANDA_3"] - median(mydata2013[,"BANDA_3"])
+mydata2014_b3n <- mydata2014[,"banda_3"] - median(mydata2014[,"banda_3"])
+mydata2015_b3n <- mydata2015[,"banda3"] - median(mydata2015[,"banda3"])
+
+mydata2013_b4n <- mydata2013[,"BANDA_4"] - median(mydata2013[,"BANDA_4"])
+mydata2014_b4n <- mydata2014[,"banda_4"] - median(mydata2014[,"banda_4"])
+mydata2015_b4n <- mydata2015[,"banda4"] - median(mydata2015[,"banda4"])
+
+mydata2013_b5n <- mydata2013[,"BANDA_5"] - median(mydata2013[,"BANDA_5"])
+mydata2014_b5n <- mydata2014[,"banda_5"] - median(mydata2014[,"banda_5"])
+mydata2015_b5n <- mydata2015[,"banda5"] - median(mydata2015[,"banda5"])
+
+mydata2013_b6n <- mydata2013[,"BANDA_6"] - median(mydata2013[,"BANDA_6"])
+mydata2014_b6n <- mydata2014[,"banda_6"] - median(mydata2014[,"banda_6"])
+mydata2015_b6n <- mydata2015[,"banda6"] - median(mydata2015[,"banda6"])
+
+mydata2013_b7n <- mydata2013[,"BANDA_7"] - median(mydata2013[,"BANDA_7"])
+mydata2014_b7n <- mydata2014[,"banda_7"] - median(mydata2014[,"banda_7"])
+mydata2015_b7n <- mydata2015[,"banda7"] - median(mydata2015[,"banda7"])
+```
+
+#### Integración de las tablas que corresponden a imagenes en tres fechas en una sola tabla para el analisis posterior
+
+```{r}
+# porentaje de vegetación es columna numerica y no requiere conversión
+mydataFULL_PORC_VEG <- c(mydata2013[,"PORC_VEG"],mydata2014[,"PORC_VEG"],mydata2015[,"PORC_VEG"])
+# rango es un factor y requiere transformación a cadenas de simbolos
+mydataFULL_RANGO <- c(as.character(mydata2013[,"Rango"]),
+                      as.character(mydata2014[,"Rango"]),
+                      as.character(mydata2015[,"Rango"]))
+# fecha de siembra es un factor y requiere transformación a cadenas de simbolos
+mydataFULL_FECH_SIEM <- c(as.character(mydata2013[,"FECH_SIEM"]),
+                          as.character(mydata2014[,"FECH_SIEM"]),
+                          as.character(mydata2015[,"FECH_SIEM"]))
+
+# bandas normalizadas con mediana son numéricas y non requieren conversión de formato
+mydataFULL_b2n <- c(mydata2013_b2n,mydata2014_b2n,mydata2015_b2n)
+mydataFULL_b3n <- c(mydata2013_b3n,mydata2014_b3n,mydata2015_b3n)
+mydataFULL_b4n <- c(mydata2013_b4n,mydata2014_b4n,mydata2015_b4n)
+mydataFULL_b5n <- c(mydata2013_b5n,mydata2014_b5n,mydata2015_b5n)
+mydataFULL_b6n <- c(mydata2013_b6n,mydata2014_b6n,mydata2015_b6n)
+mydataFULL_b7n <- c(mydata2013_b7n,mydata2014_b7n,mydata2015_b7n)
+
+mydataFULL <- data.frame(
+                        porc_veg=mydataFULL_PORC_VEG,
+                        rango=mydataFULL_RANGO,
+                        fech_siem=mydataFULL_FECH_SIEM,
+                        porc_veg_f=as.factor(mydataFULL_PORC_VEG),
+                        b2n=mydataFULL_b2n,
+                        b3n=mydataFULL_b3n,
+                        b4n=mydataFULL_b4n,
+                        b5n=mydataFULL_b5n,
+                        b6n=mydataFULL_b6n,
+                        b7n=mydataFULL_b7n)
+
+# convertir columnas de rango y fecha de siembra a factores
+mydataFULL[,"rango_f"] <- as.factor(mydataFULL[,"rango"])
+mydataFULL[,"rango_f"] <- factor(mydataFULL[,"rango"], levels = c("0-3","3-12","12-30","30-45"))
+mydataFULL[,"fech_siem_f"] <- as.factor(mydataFULL[,"fech_siem"])
+mydataFULL[,"fech_siem_f"] <- factor(mydataFULL[,"fech_siem"], 
+    levels = c("2005","2006","2007","2008","2009","2010","2011","2012","2013","2014","2015","2016"))
+```
+
+## Graficas de relación entre rango de pendiente y reflectividad en bandas
+### Tabla integrada
+
+```{r, echo=TRUE, fig.width=12, fig.height=6}
+par(mfcol = c(1, 2), cex =1)
+
+boxplot(mydataFULL[,"b2n"] ~ factor(mydataFULL[,"rango"], levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 2 FULL",col=rainbow(11))
+boxplot(mydataFULL[,"b3n"] ~ factor(mydataFULL[,"rango"], levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 3 FULL",col=rainbow(11))
+boxplot(mydataFULL[,"b4n"] ~ factor(mydataFULL[,"rango"], levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 4 FULL",col=rainbow(11))
+boxplot(mydataFULL[,"b5n"] ~ factor(mydataFULL[,"rango"], levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 5 FULL",col=rainbow(11))
+boxplot(mydataFULL[,"b6n"] ~ factor(mydataFULL[,"rango"], levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 6 FULL",col=rainbow(11))
+boxplot(mydataFULL[,"b7n"] ~ factor(mydataFULL[,"rango"], levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 7 FULL",col=rainbow(11))
+```
+
+## Graficas de relación entre porcentaje de malezas y reflectividad en bandas
+###  Tabla integrada
+
+```{r, echo=TRUE, fig.width=12, fig.height=6}
+par(mfcol = c(1, 2), cex =1)
+boxplot(mydataFULL[,"b2n"] ~ factor(mydataFULL[,"porc_veg"], levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 2 FULL",col=rainbow(11,s = 0.5))
+boxplot(mydataFULL[,"b3n"] ~ factor(mydataFULL[,"porc_veg"], levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 3 FULL",col=rainbow(11,s = 0.5))
+boxplot(mydataFULL[,"b4n"] ~ factor(mydataFULL[,"porc_veg"], levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 4 FULL",col=rainbow(11,s = 0.5))
+boxplot(mydataFULL[,"b5n"] ~ factor(mydataFULL[,"porc_veg"], levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 5 FULL",col=rainbow(11,s = 0.5))
+boxplot(mydataFULL[,"b6n"] ~ factor(mydataFULL[,"porc_veg"], levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 6 FULL",col=rainbow(11,s = 0.5))
+boxplot(mydataFULL[,"b7n"] ~ factor(mydataFULL[,"porc_veg"], levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 7 FULL",col=rainbow(11,s = 0.5))
+```
+
+## Graficas de relación entre fecha de siembra de agave y reflectividad en bandas
+### Tabla integrada
+
+```{r, echo=TRUE, fig.width=12, fig.height=6}
+par(mfcol = c(1, 2), cex =1)
+boxplot(mydataFULL[,"b2n"] ~ factor(mydataFULL[,"fech_siem"], levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 2 FULL",col=cm.colors(11))
+boxplot(mydataFULL[,"b3n"] ~ factor(mydataFULL[,"fech_siem"], levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 3 FULL",col=cm.colors(11))
+boxplot(mydataFULL[,"b4n"] ~ factor(mydataFULL[,"fech_siem"], levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 4 FULL",col=cm.colors(11))
+boxplot(mydataFULL[,"b5n"] ~ factor(mydataFULL[,"fech_siem"], levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 5 FULL",col=cm.colors(11))
+boxplot(mydataFULL[,"b6n"] ~ factor(mydataFULL[,"fech_siem"], levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 6 FULL",col=cm.colors(11))
+boxplot(mydataFULL[,"b7n"] ~ factor(mydataFULL[,"fech_siem"], levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 7 FULL",col=cm.colors(11))
+```
+
+### Resumen complementario de las tablas fuente y la tabla integrada
+
+```{r}
+# tamaño de tablas
+dim(mydata2013)
+dim(mydata2014)
+dim(mydata2015)
+dim(mydataFULL)
+
+# resumen de tablas
+summary(mydata2013)
+summary(mydata2014)
+summary(mydata2015)
+summary(mydataFULL)
+
+# inicio y final de la tabla integrada
+head(mydataFULL)
+tail(mydataFULL)
+```
+

@@ -1,0 +1,234 @@
+---
+title: "Estudio de reflectividad en campos de agave: corrección de la banda 2"
+author: "QUETZALCOATL SINUE & V. Shalisko"
+date: "3 de mayo de 2017"
+output: html_document
+
+---
+
+#### Cargar bibliotecas necesarias
+
+```{r}
+library(foreign)
+library(mgcv)
+```
+
+#### Nota: los fragmentos del código 1, 2 y 3 fueron copiados desde MODELO_correccion_estudio_de_datos.Rmd
+#### Cargar las tablas con datos de muestreo de imagenes 2013, 2014, 2015
+
+```{r}
+# fragmento del codigo 1
+mydata2013<-read.dbf("Clip_PunRas_Buffer_45m_inters_2013.dbf")
+mydata2013[mydata2013["FECH_SIEM"] == 0,"FECH_SIEM"] <- NA # sustituir fecha de siembra 0 por NA
+
+mydata2014<-read.dbf("Clip_punRas_Buffer_45m_intersec_2014.dbf")
+mydata2014[mydata2014["FECH_SIEM"] == 0,"FECH_SIEM"] <- NA # sustituir fecha de siembra 0 por NA
+
+mydata2015<-read.dbf("Clip_punRas_Buffer_45m_intersec_2015.dbf")
+mydata2015[mydata2015["FECH_SIEM"] == 0,"FECH_SIEM"] <- NA # sustituir fecha de siembra 0 por NA
+
+# Prueba opcional: para seleccionar solo datos con agaves sin vegetación
+# mydata2013 <- subset(mydata2013, PORC_VEG == 0)   
+# mydata2014 <- subset(mydata2014, PORC_VEG == 0)
+# mydata2015 <- subset(mydata2015, PORC_VEG == 0)
+
+```
+
+## Normalización de mediana de reflectividad en bandas para hacer compatibles datos de muestreo de las tres imagenes
+
+```{r}
+# fragmento del código 2
+# normalización de mediana consiste en que cada una de las muestras se ajusta sobre la mediana
+
+mydata2013_b2n <- mydata2013[,"BANDA_2"] - median(mydata2013[,"BANDA_2"])
+mydata2014_b2n <- mydata2014[,"banda_2"] - median(mydata2014[,"banda_2"])
+mydata2015_b2n <- mydata2015[,"banda2"] - median(mydata2015[,"banda2"])
+
+mydata2013_b3n <- mydata2013[,"BANDA_3"] - median(mydata2013[,"BANDA_3"])
+mydata2014_b3n <- mydata2014[,"banda_3"] - median(mydata2014[,"banda_3"])
+mydata2015_b3n <- mydata2015[,"banda3"] - median(mydata2015[,"banda3"])
+
+mydata2013_b4n <- mydata2013[,"BANDA_4"] - median(mydata2013[,"BANDA_4"])
+mydata2014_b4n <- mydata2014[,"banda_4"] - median(mydata2014[,"banda_4"])
+mydata2015_b4n <- mydata2015[,"banda4"] - median(mydata2015[,"banda4"])
+
+mydata2013_b5n <- mydata2013[,"BANDA_5"] - median(mydata2013[,"BANDA_5"])
+mydata2014_b5n <- mydata2014[,"banda_5"] - median(mydata2014[,"banda_5"])
+mydata2015_b5n <- mydata2015[,"banda5"] - median(mydata2015[,"banda5"])
+
+mydata2013_b6n <- mydata2013[,"BANDA_6"] - median(mydata2013[,"BANDA_6"])
+mydata2014_b6n <- mydata2014[,"banda_6"] - median(mydata2014[,"banda_6"])
+mydata2015_b6n <- mydata2015[,"banda6"] - median(mydata2015[,"banda6"])
+
+mydata2013_b7n <- mydata2013[,"BANDA_7"] - median(mydata2013[,"BANDA_7"])
+mydata2014_b7n <- mydata2014[,"banda_7"] - median(mydata2014[,"banda_7"])
+mydata2015_b7n <- mydata2015[,"banda7"] - median(mydata2015[,"banda7"])
+```
+
+#### Integración de las tablas que corresponden a imagenes en tres fechas en una sola tabla para el analisis posterior
+
+```{r}
+# fragmento del código 3
+# porentaje de vegetación es columna numerica y no requiere conversión
+mydataFULL_PORC_VEG <- c(mydata2013[,"PORC_VEG"],mydata2014[,"PORC_VEG"],mydata2015[,"PORC_VEG"])
+# rango es un factor y requiere transformación a cadenas de simbolos
+mydataFULL_RANGO <- c(as.character(mydata2013[,"Rango"]),
+                      as.character(mydata2014[,"Rango"]),
+                      as.character(mydata2015[,"Rango"]))
+# fecha de siembra es un factor y requiere transformación a cadenas de simbolos
+mydataFULL_FECH_SIEM <- c(as.character(mydata2013[,"FECH_SIEM"]),
+                          as.character(mydata2014[,"FECH_SIEM"]),
+                          as.character(mydata2015[,"FECH_SIEM"]))
+
+# bandas normalizadas con mediana son numéricas y non requieren conversión de formato
+mydataFULL_b2n <- c(mydata2013_b2n,mydata2014_b2n,mydata2015_b2n)
+mydataFULL_b3n <- c(mydata2013_b3n,mydata2014_b3n,mydata2015_b3n)
+mydataFULL_b4n <- c(mydata2013_b4n,mydata2014_b4n,mydata2015_b4n)
+mydataFULL_b5n <- c(mydata2013_b5n,mydata2014_b5n,mydata2015_b5n)
+mydataFULL_b6n <- c(mydata2013_b6n,mydata2014_b6n,mydata2015_b6n)
+mydataFULL_b7n <- c(mydata2013_b7n,mydata2014_b7n,mydata2015_b7n)
+
+mydataFULL <- data.frame(
+                        porc_veg=mydataFULL_PORC_VEG,
+                        rango=mydataFULL_RANGO,
+                        fech_siem=mydataFULL_FECH_SIEM,
+                        porc_veg_f=as.factor(mydataFULL_PORC_VEG),
+                        b2n=mydataFULL_b2n,
+                        b3n=mydataFULL_b3n,
+                        b4n=mydataFULL_b4n,
+                        b5n=mydataFULL_b5n,
+                        b6n=mydataFULL_b6n,
+                        b7n=mydataFULL_b7n)
+
+# convertir columnas de rango y fecha de siembra a factores
+mydataFULL[,"rango_f"] <- as.factor(mydataFULL[,"rango"])
+mydataFULL[,"rango_f"] <- factor(mydataFULL[,"rango"], levels = c("0-3","3-12","12-30","30-45"))
+mydataFULL[,"fech_siem_f"] <- as.factor(mydataFULL[,"fech_siem"])
+mydataFULL[,"fech_siem_f"] <- factor(mydataFULL[,"fech_siem"], 
+    levels = c("2005","2006","2007","2008","2009","2010","2011","2012","2013","2014","2015","2016"))
+```
+
+# TRATAMIENTO DE BANDA 2 
+#### A partir de este punto solo se trabaja con los datos de la banda 2 en la tabla integrada
+## Primera corección
+### Inferirencia de la respuesta a rangos de pendiente para BANDA 2 (modelo *myfit_b2n*)
+
+```{r, echo=TRUE, fig.width=12, fig.height=6}
+# convertir columna rango en una columna numérica (enteros) ordenada en secuencia de rangos deseada
+mydataFULL[,"rango_n"] <- as.numeric(factor(mydataFULL[,"rango"], levels= c("0-3","3-12","12-30","30-45")))
+
+# construir un modelo de respuesta de reflectividad a rango de pendiente por medio de GAM
+myfit_b2n <- gam(b2n ~ s(rango_n, k=3, fx = TRUE, bs="cr"), data=mydataFULL)
+
+# resumen del modelo inferido
+summary(myfit_b2n)
+
+# realizar una visualización del modelo inferido en intervalo de interés
+sequence <- data.frame(rango_n=seq(from=0.8, to=3.2, by=0.1))
+my_response_b2n <- predict(myfit_b2n, newdata=sequence, type="response", se.fit=TRUE)
+
+# establecer zona de graficas combinadas
+layout(matrix(c(1,1,2,2,2,2),1,6,byrow = TRUE)) 
+par(cex = 1.1)
+
+# visualizar relación entre rango de peniente y banda
+boxplot(mydataFULL[,"b2n"] ~ factor(mydataFULL[,"rango"], levels= c("0-3","3-12","12-30","30-45")),main="Rango vs. BANDA 2 FULL",col=rainbow(11))
+
+# visualizar la función de respuesta a rango
+plot(mydataFULL[,"b2n"] ~ mydataFULL[,"rango_n"], xlim = c(0.8,3.2),
+     main = "Curva de respuesta", xlab = "Rangos de pendiente (codificados)", ylab = "Reflectividad")
+lines(sequence$rango_n , my_response_b2n$fit, lwd = 2 , col = "red")
+lines(sequence$rango_n , my_response_b2n$fit + 1.96*my_response_b2n$se.fit, lwd = 1 , col = "gray")
+lines(sequence$rango_n , my_response_b2n$fit - 1.96*my_response_b2n$se.fit, lwd = 1 , col = "gray")
+```
+
+### Realizar una corección de valores de reflectividad sustrayendo el efecto esperado de pendiente
+
+```{r}
+# estimar valor de reflectividad esperado con el pendiente
+b2n_prediccion <- predict(myfit_b2n, newdata=mydataFULL, type="response", se.fit=TRUE)
+
+# guardar los valores corregidos con el modelo de respuesta a pendiente en la columna "b2n_c1"
+mydataFULL[,"b2n_c1"] <- mydataFULL[,"b2n"] - b2n_prediccion$fit
+```
+
+### Comparar los datos de reflectividad antes y despues de corección con el modelo *myfit_b2n*
+
+```{r, echo=TRUE, fig.width=12, fig.height=6}
+# comparar la columna de reflectividad sin corrección y con corrección
+summary(mydataFULL[,c("b2n","b2n_c1")])
+
+# visualizar respuesta a presencia de maleza sin corección y con corección
+par(mfcol = c(1, 2), cex =1)
+boxplot(mydataFULL[,"b2n"] ~ factor(mydataFULL[,"porc_veg"], levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 2 FULL (original)",col=rainbow(11,s = 0.5))
+boxplot(mydataFULL[,"b2n_c1"] ~ factor(mydataFULL[,"porc_veg"], levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 2 FULL (corregida 1)",col=rainbow(11,s = 0.5))
+
+# visualizar respuesta a fecha de siembra de agave sin corección y con corección
+par(mfcol = c(1, 2), cex =1)
+boxplot(mydataFULL[,"b2n"] ~ factor(mydataFULL[,"fech_siem"], levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 2 FULL (original)",col=cm.colors(11))
+boxplot(mydataFULL[,"b2n_c1"] ~ factor(mydataFULL[,"fech_siem"], levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 2 FULL (corregida 1)",col=cm.colors(11))
+```
+
+## segunda corección
+### Inferirencia de la respuesta a presencia de maleza para BANDA 2 (modelo *myfit2_b2n*)
+
+```{r, echo=TRUE, fig.width=12, fig.height=6}
+
+# construir un modelo de respuesta de reflectividad a presencia de maleza por medio de GAM
+myfit2_b2n <- gam(b2n_c1 ~ s(porc_veg, k=3, fx = TRUE, bs="cr"), data=mydataFULL)
+
+# resumen del modelo inferido
+summary(myfit2_b2n)
+
+# realizar una visualización del modelo inferido en intervalo de interés
+sequence2 <- data.frame(porc_veg=seq(from=0, to=100, by=1))
+my_response2_b2n <- predict(myfit2_b2n, newdata=sequence2, type="response", se.fit=TRUE)
+
+# establecer zona de graficas combinadas
+layout(matrix(c(1,1,2,2,2,2),1,6,byrow = TRUE)) 
+par(cex = 1.1)
+
+# visualizar relación entre maleza y banda
+boxplot(mydataFULL[,"b2n_c1"] ~ factor(mydataFULL[,"porc_veg"], levels= c("0","20","40","60","80","100")),main="Maleza vs. BANDA 2 FULL",col=rainbow(11, s = 0.5))
+
+# visualizar la función de respuesta a presencia de maleza
+plot(mydataFULL[,"b2n_c1"] ~ mydataFULL[,"porc_veg"], xlim = c(0,100),
+     main = "Curva de respuesta", xlab = "Porcentaje de maleza", ylab = "Reflectividad")
+lines(sequence2$porc_veg , my_response2_b2n$fit, lwd = 2 , col = "red")
+lines(sequence2$porc_veg , my_response2_b2n$fit + 1.96*my_response2_b2n$se.fit, lwd = 1 , col = "gray")
+lines(sequence2$porc_veg , my_response2_b2n$fit - 1.96*my_response2_b2n$se.fit, lwd = 1 , col = "gray")
+```
+
+### Realizar segunda corección de valores de reflectividad sustrayendo el efecto esperado de porcentaje de malezas
+
+```{r}
+# estimar valor de reflectividad esperado con el pendiente
+b2n_prediccion2 <- predict(myfit2_b2n, newdata=mydataFULL, type="response", se.fit=TRUE)
+
+# guardar los valores corregidos con el modelo de respuesta a pendiente en la columna "b2n_c2"
+mydataFULL[,"b2n_c2"] <- mydataFULL[,"b2n_c1"] - b2n_prediccion2$fit
+```
+
+### Comparar los datos de reflectividad antes y despues de corección con el modelo *myfit2_b2n*
+
+```{r, echo=TRUE, fig.width=12, fig.height=6}
+# comparar la columna de reflectividad sin corrección y con corrección
+summary(mydataFULL[,c("b2n","b2n_c2")])
+
+# visualizar respuesta a presencia de maleza sin corección y con corección
+par(mfcol = c(1, 2), cex =1)
+boxplot(mydataFULL[,"b2n"] ~ factor(mydataFULL[,"porc_veg"], levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 2 FULL (original)",col=rainbow(11,s = 0.5))
+boxplot(mydataFULL[,"b2n_c2"] ~ factor(mydataFULL[,"porc_veg"], levels= c("0","20","40","60","80","100")),main="Malezas vs. BANDA 2 FULL (corregida 2)",col=rainbow(11,s = 0.5))
+
+# visualizar respuesta a fecha de siembra de agave sin corección y con corección
+par(mfcol = c(1, 2), cex =1)
+boxplot(mydataFULL[,"b2n"] ~ factor(mydataFULL[,"fech_siem"], levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 2 FULL (original)",col=cm.colors(11))
+boxplot(mydataFULL[,"b2n_c2"] ~ factor(mydataFULL[,"fech_siem"], levels= c(seq(from=2005,to=2016,by=1))),main="Fechas de siembra vs. BANDA 2 FULL (corregida 2)",col=cm.colors(11))
+```
+
+
+
+
+
+
+
