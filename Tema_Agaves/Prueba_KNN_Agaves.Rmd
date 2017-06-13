@@ -1,0 +1,93 @@
+---
+title: "Prueba KNN"
+author: "Viacheslav Shalisko"
+date: "12 de junio de 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+data <- read.csv("tabla_fusionada.csv")
+
+dim(data)
+data <- data[!is.na(data[,5]),]
+dim(data)
+
+clases <- levels(as.factor(data[,5]))
+clases
+
+library(dismo)
+grupos <- kfold(data, k = 5)
+
+data <- cbind(data,grupos)
+head(data)
+
+data_entrenamiento <- data[data$grupos > 1,]
+dim(data_entrenamiento)
+
+data_entrenamiento_variables <- data_entrenamiento[,c(17,19,21,23,25,27)]
+data_entrenamiento_clase <- as.factor(data_entrenamiento[,5])
+
+summary(data_entrenamiento_variables)
+summary(data_entrenamiento_clase)
+levels(data_entrenamiento_clase)
+
+data_prueba <- data[data$grupos == "1",]
+dim(data_prueba)
+
+data_prueba_variables <- data_prueba[,c(17,19,21,23,25,27)]
+data_prueba_clase <- as.factor(data_prueba[,5])
+```
+
+```{r}
+library(class)
+result_knn <- knn(data_entrenamiento_variables, data_prueba_variables, data_entrenamiento_clase, k = 10, prob=TRUE)
+
+result_knn
+
+error_matrix <- table(result_knn, data_prueba_clase)
+error_matrix
+```
+
+```{r}
+library(fmsb)
+Kappa.test(error_matrix, conf.level=0.95) 
+
+error_stat <- function(m, legend) {
+  n <- sum(m)
+  cat("Número de elementos: ",n,"\n")
+  d <- diag(m)
+
+  rowsums <- apply(m, 1, sum)
+  colsums <- apply(m, 2, sum)
+  p <- rowsums / n
+  q <- colsums / n
+  cat("\nSumas normalizadas en filas (p) y en columnas (q):","\n")
+  print(data.frame(legend,p,q))
+
+  # respuesta por clase
+  recall <- d / colsums 
+  # precición por clase
+  precision <- d / rowsums 
+  # Métrica F1 (media harmónica de precición y respuesta)
+  f1 <- 2 * precision * recall / (precision + recall)
+  cat("\nPrecición y respuesta por clase:","\n")
+  print(data.frame(legend,precision, recall, f1))
+  
+  # precición general
+  accuracy <- sum(d) / n
+  cat("\nPrecición general: ",accuracy,"\n")  
+  
+  # métrica de precición kappa
+  expaccuracy = sum(p * q)
+  kappa = (accuracy - expaccuracy) / (1 - expaccuracy)
+  cat("\nKappa de Cohen: ",kappa,"\n")
+  
+}
+
+error_stat(error_matrix, clases)
+```
+
