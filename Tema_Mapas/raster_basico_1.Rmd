@@ -1,0 +1,72 @@
+---
+title: "TMIN regressions Ecuador"
+author: "Viacheslav Shalisko"
+date: "5 de octubre de 2017"
+output: html_document
+---
+
+```{r load-modules}
+library(rgdal)
+library(raster)
+library(foreign)
+```
+
+Cargar raster de MDE
+
+```{r load-mde}
+my_raster_path <- 'C:\\Users\\vshal\\Downloads\\GMTED2010\\'
+
+mde_raster <- raster(paste(my_raster_path,"GMTED2010_075_Andes.tif",sep=""))
+names(mde_raster) <- 'mde'
+mde_raster
+```
+
+Cargar puntos de muestreo y eliminar registros sin datos
+
+```{r load-points}
+# read data
+
+
+my_path <- 'C:\\Users\\vshal\\Downloads\\Chelsea\\Sampling_E\\'
+
+sample<-read.dbf(paste(my_path,"samping_15000_tmin.dbf",sep=""))
+
+dim(sample)
+head(sample)
+
+sample[sample$tmin_1 == -9999,"tmin_1"] <- NA
+sample <- na.omit(sample)
+
+```
+
+Construir el modelo lineal
+
+```{r model}
+mde <- sample$GMTED2010_
+t <- sample$tmin_1
+fit1 <- glm(t ~ mde)
+plot(t ~ mde)
+plot(fit1)
+```
+
+Calcular superficie de variable dependiente con el modelo construido y raster del MDE
+
+```{r predict}
+predicted_raster <- predict(mde_raster, fit1, progress = "window")
+predicted_raster
+```
+
+Guadrar raster en forma del archivo TIFF
+
+```{r save-raster}
+rf <- writeRaster(predicted_raster, filename=paste(my_path,"test.tif",sep=""), format="GTiff", overwrite=TRUE)
+```
+
+Visualizar raster de MDE y de superficie de variable dependiente
+
+```{r plot-maps}
+par(mfrow=c(1, 2))
+
+plot(mde_raster, main = "MDE")
+plot(predicted_raster, main = "Predición")
+```
