@@ -14,9 +14,9 @@ library(foreign)
 Cargar raster de MDE (región central de Ecuador, resolución 7.5")
 
 ```{r load-mde}
-my_raster_path <- 'data\\'
+my_path <- 'data\\'
 
-mde_raster <- raster(paste(my_raster_path,"GMTED2010_075_Cotoplaxi.tif",sep=""))
+mde_raster <- raster("data\\GMTED2010_075_Cotoplaxi.tif")
 names(mde_raster) <- 'mde'
 mde_raster
 ```
@@ -26,9 +26,7 @@ Cargar puntos de muestreo de elevación y TMIN y eliminar registros sin datos
 ```{r load-points}
 # read data
 
-my_path <- 'data\\'
-
-sample<-read.dbf(paste(my_path,"samping_15000_tmin.dbf",sep=""))
+sample<-read.dbf("data\\samping_15000_tmin.dbf")
 
 dim(sample)
 head(sample)
@@ -44,6 +42,7 @@ Construir el modelo lineal
 mde <- sample$GMTED2010_
 t <- sample$tmin_1
 fit1 <- glm(t ~ mde)
+fit1
 plot(t ~ mde)
 plot(fit1)
 ```
