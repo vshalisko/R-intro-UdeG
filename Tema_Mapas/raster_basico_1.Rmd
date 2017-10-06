@@ -1,5 +1,5 @@
 ---
-title: "TMIN regressions Ecuador"
+title: "TMIN regressions Cotoplaxi"
 author: "Viacheslav Shalisko"
 date: "5 de octubre de 2017"
 output: html_document
@@ -11,23 +11,22 @@ library(raster)
 library(foreign)
 ```
 
-Cargar raster de MDE
+Cargar raster de MDE (región central de Ecuador, resolución 7.5")
 
 ```{r load-mde}
-my_raster_path <- 'C:\\Users\\vshal\\Downloads\\GMTED2010\\'
+my_raster_path <- 'data\\'
 
-mde_raster <- raster(paste(my_raster_path,"GMTED2010_075_Andes.tif",sep=""))
+mde_raster <- raster(paste(my_raster_path,"GMTED2010_075_Cotoplaxi.tif",sep=""))
 names(mde_raster) <- 'mde'
 mde_raster
 ```
 
-Cargar puntos de muestreo y eliminar registros sin datos
+Cargar puntos de muestreo de elevación y TMIN y eliminar registros sin datos
 
 ```{r load-points}
 # read data
 
-
-my_path <- 'C:\\Users\\vshal\\Downloads\\Chelsea\\Sampling_E\\'
+my_path <- 'data\\'
 
 sample<-read.dbf(paste(my_path,"samping_15000_tmin.dbf",sep=""))
 
