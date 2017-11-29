@@ -1,0 +1,232 @@
+---
+title: "TREE ENSEMBLES_C2"
+author: "QUETZALCOATL SINUE & V. Shalisko"
+date: "29 de noviembre de 2017"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(vcd)
+library(randomForest)
+library(raster)
+```
+
+```{r}
+data <- read.csv("tabla_fusionada_1.csv")
+#data <- read.csv("tabla_fusionada_1.csv")
+
+dim(data)
+data <- data[!is.na(data[,5]),]
+dim(data)
+
+library(dismo)
+# good random seed 32
+set.seed(32)
+grupos <- kfold(data, k = 5)
+
+data <- cbind(data,grupos)
+head(data)
+
+data_full <- data[data$grupos > 0,]
+data_full_variables <- data_full[,c(18,20,22,24,26,28)]
+data_full_clase <- as.factor(data_full[,5])
+
+data_entrenamiento <- data[data$grupos > 1,]
+dim(data_entrenamiento)
+
+data_entrenamiento_variables <- data_entrenamiento[,c(18,20,22,24,26,28)]
+data_entrenamiento_clase <- as.factor(data_entrenamiento[,5])
+
+summary(data_entrenamiento_variables)
+summary(data_entrenamiento_clase)
+levels(data_entrenamiento_clase)
+
+data_prueba <- data[data$grupos == "1",]
+dim(data_prueba)
+
+data_prueba_variables <- data_prueba[,c(18,20,22,24,26,28)]
+data_prueba_clase <- as.factor(data_prueba[,5])
+
+str(data_prueba_variables)
+
+head(data_prueba_variables)
+head(data_entrenamiento_clase)
+#train <- rbind(iris3[1:25,,1], iris3[1:25,,2], iris3[1:25,,3])
+#test <- rbind(iris3[26:50,,1], iris3[26:50,,2], iris3[26:50,,3])
+#summary(train)
+#summary(test)
+#cl <- factor(c(rep("s",25), rep("c",25), rep("v",25)))
+#ct <- factor(c(rep("s",25), rep("c",25), rep("v",25)))
+```
+
+## Modelo 1 (con base en primera corección)
+#### Para construir el modelo para posterior trabajo con raster se requiere utilizar únicamete resultados de primera corección
+
+```{r}
+library(randomForest)
+data_entrenamiento$fech_siem_factor <- as.factor(data_entrenamiento$fech_siem)
+
+m3_1 <- randomForest(fech_siem_factor ~ b2n_c1 + b3n_c1 + b4n_c1 + b5n_c1 + b6n_c1 + b7n_c1, data=data_entrenamiento,proximity=TRUE)
+m3_1
+
+plot(m3_1, col = topo.colors(10))
+legend('topright',levels(data_entrenamiento_clase),box.lty=0, fill=topo.colors(10))
+
+MDSplot(m3_1,data_entrenamiento_clase, k=4, palette = topo.colors(10))
+#text(m3_1)
+```
+
+## Precisión con datos completos (modelo con base en primera corección)
+
+```{r}
+
+resultado_full_1 <- predict(m3_1, data_full , type= "class")
+
+#rpart.plot(m3_1)
+#rpart.plot(m3_1, type=5, extra=234, fallen.leaves=T)
+error_matrix_full_1 <- table(resultado_full_1, data_full_clase)
+error_matrix_full_1
+
+Kerror_matrix_full_1 <- Kappa(error_matrix_full_1) 
+Kerror_matrix_full_1
+#summary(Kerror_matrix_full_1)
+confint(Kerror_matrix_full_1, level = 0.95)
+
+```
+
+## Precisión solo con datos de control (modelo con base en primera corección)
+
+```{r}
+
+resultado_prediccion_1 <- predict(m3_1, data_prueba , type= "class")
+
+#rpart.plot(m3_1)
+#rpart.plot(m3_1, type=5, extra=234, fallen.leaves=T)
+error_matrix_1 <- table(resultado_prediccion_1, data_prueba_clase)
+error_matrix_1
+
+Kerror_matrix_1 <- Kappa(error_matrix_1) 
+Kerror_matrix_1
+confint(Kerror_matrix_1, level = 0.95)
+
+```
+
+## Modelo 2 (con base en segunda corección)
+#### Para construir el modelo para posterior trabajo con raster se requiere utilizar únicamete resultados de primera corección
+
+```{r}
+
+data_entrenamiento$fech_siem_factor <- as.factor(data_entrenamiento$fech_siem)
+
+m3_2 <- randomForest(fech_siem_factor ~ b2n_c2 + b3n_c2 + b4n_c2 + b5n_c2 + b6n_c2 + b7n_c2, data=data_entrenamiento,proximity=TRUE)
+m3_2
+
+plot(m3_2, col = topo.colors(10))
+legend('topright',levels(data_entrenamiento_clase),box.lty=0, fill=topo.colors(10))
+
+MDSplot(m3_2,data_entrenamiento_clase, k=4, palette = topo.colors(10))
+#text(m3_1)
+```
+
+## Precisión con datos completos (modelo con base en segunda corección)
+
+```{r}
+
+resultado_full_2 <- predict(m3_2, data_full , type= "class")
+
+#rpart.plot(m3_2)
+#rpart.plot(m3_2, type=5, extra=234, fallen.leaves=T)
+error_matrix_full_2 <- table(resultado_full_2, data_full_clase)
+error_matrix_full_2
+
+Kerror_matrix_full_2 <- Kappa(error_matrix_full_2) 
+Kerror_matrix_full_2
+#summary(Kerror_matrix_full_2)
+confint(Kerror_matrix_full_2, level = 0.95)
+
+```
+
+## Precisión solo con datos de control (modelo con base en segunda corección)
+
+```{r}
+
+resultado_prediccion_2 <- predict(m3_2, data_prueba , type= "class")
+
+#rpart.plot(m3_2)
+#rpart.plot(m3_2, type=5, extra=234, fallen.leaves=T)
+error_matrix_2 <- table(resultado_prediccion_2, data_prueba_clase)
+error_matrix_2
+
+Kerror_matrix_2 <- Kappa(error_matrix_2) 
+Kerror_matrix_2
+confint(Kerror_matrix_2, level = 0.95)
+
+```
+
+
+## Cargar capas raster (con primera corección aplicada)
+
+```{r}
+raster_2013_corregido <- stack("IMAGENES_2013/b2n_c1_r.tif",
+                                "IMAGENES_2013/b3n_c1_r.tif",
+                                "IMAGENES_2013/b4n_c1_r.tif",
+                                "IMAGENES_2013/b5n_c1_r.tif",
+                                "IMAGENES_2013/b6n_c1_r.tif",
+                                "IMAGENES_2013/b7n_c1_r.tif")
+names(raster_2013_corregido) <- c("b2n_c1","b3n_c1","b4n_c1","b5n_c1","b6n_c1","b7n_c1")
+
+raster_2013_corregido
+
+raster_2014_corregido <- stack("IMAGENES_2014/b2n_c1_r.tif",
+                                "IMAGENES_2014/b3n_c1_r.tif",
+                                "IMAGENES_2014/b4n_c1_r.tif",
+                                "IMAGENES_2014/b5n_c1_r.tif",
+                                "IMAGENES_2014/b6n_c1_r.tif",
+                                "IMAGENES_2014/b7n_c1_r.tif")
+names(raster_2014_corregido) <- c("b2n_c1","b3n_c1","b4n_c1","b5n_c1","b6n_c1","b7n_c1")
+
+raster_2014_corregido
+
+# se detecto un problema con el raster "IMAGENES_2015/b5n_c1_r.tif" - su extent no coincide con el resto - a corregir
+
+raster_2015_corregido <- stack("IMAGENES_2015/b2n_c1_r.tif",
+                                "IMAGENES_2015/b3n_c1_r.tif",
+                                "IMAGENES_2015/b4n_c1_r.tif",
+                                "IMAGENES_2014/b5n_c1_r.tif",
+                                "IMAGENES_2015/b6n_c1_r.tif",
+                                "IMAGENES_2015/b7n_c1_r.tif")
+names(raster_2015_corregido) <- c("b2n_c1","b3n_c1","b4n_c1","b5n_c1","b6n_c1","b7n_c1")
+
+raster_2015_corregido
+```
+
+
+## Realizar predicción con el modelo 1 (en raster)
+#### En este analisis significado solo tienen los pixeles que se envcuentran en la mascara de campos de Agave, todo lo que se encuentra fuera de esta mascara es el rido. Aplicacpon de mascara se puede realizar desupes de realizar la clasificaicón, o al momento.
+
+```{r fig.width = 10, cache=TRUE}
+clasificado_raster_2013 <- predict(raster_2013_corregido, m3_1, type= "class")
+
+plot(clasificado_raster_2013)
+
+clasificado_raster_2014 <- predict(raster_2014_corregido, m3_1, type= "class")
+
+plot(clasificado_raster_2014)
+
+clasificado_raster_2015 <- predict(raster_2015_corregido, m3_1, type= "class")
+
+plot(clasificado_raster_2015)
+
+```
+
+## Guardar los resultados en TIFF
+
+```{r}
+writeRaster(clasificado_raster_2013, filename="clasificado_preliminar_raster_2013.tif", format="GTiff", overwrite=TRUE)
+writeRaster(clasificado_raster_2014, filename="clasificado_preliminar_raster_2014.tif", format="GTiff", overwrite=TRUE)
+writeRaster(clasificado_raster_2015, filename="clasificado_preliminar_raster_2015.tif", format="GTiff", overwrite=TRUE)
+```
+
