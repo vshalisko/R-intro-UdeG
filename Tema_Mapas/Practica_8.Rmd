@@ -5,7 +5,7 @@ date: "31 de octubre de 2017"
 output: html_document
 ---
 
-## Ejercicio 1
+## Ejercicio 4
 
 ```{r}
 library(maptools)
@@ -34,7 +34,7 @@ plot(municipios, add = TRUE)
 
 ```
 
-## Ejercicio 2
+## Ejercicio 5
 
 ```{r fig.width=12, fig.height=10}
 mi_crs_lcc <- CRS("+proj=lcc +lat_1=17.5 +lat_2=29.5 +lat_0=12 +lon_0=‐102 +x_0=2500000 +y_0=0 +units=m +ellps=GRS80 +datum=WGS84")
@@ -67,7 +67,7 @@ plot(puntos_lcc, add = TRUE, pch = 19, cex = 1.5, col = "red")
 
 ```
 
-## Ejercicio 3
+## Ejercicio 6
 
 ```{r fig.width=12, fig.height=10}
 ruta_raster <- 'datos/GMTED2010_075_Cotoplaxi.tif'
