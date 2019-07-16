@@ -1,0 +1,43 @@
+---
+title: "Producto 2"
+author: "Viacheslav Shalisko"
+date: "16/7/2019"
+output:
+  html_document: default
+---
+
+## Descrpcón
+Plantalla para proyectos en el curso R en CUCSH, UdeG
+
+
+## Parámetros generales
+
+Texto
+
+```{r}
+
+```
+
+## Datos fuente
+
+Texto
+
+```{r}
+
+```
+
+## Análisis y resultados
+
+Texto
+
+```{r}
+
+```
+
+## Exportación de resultados
+
+Texto
+
+```{r}
+
+```
