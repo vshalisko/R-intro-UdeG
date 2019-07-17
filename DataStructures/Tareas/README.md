@@ -2,5 +2,7 @@
 
 *Producto 2* = *Ejercicio 1*: Producto_2.Rmd, Producto_2.pdf, Producto_2.html
 
+*Producto 3* = *Ejercicios 2A y 2B*: Producto_3.Rmd, Producto_3.pdf, Producto_3.html
+
 *Producto 6* = *Proyecto 1*: Producto_6.Rmd, Producto_6.pdf, Producto_6.html
 
