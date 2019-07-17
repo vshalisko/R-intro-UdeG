@@ -1,0 +1,196 @@
+---
+title: "Producto 6 (Proyecto 1)"
+author: "Viacheslav Shalisko"
+date: "16/7/2019"
+output: html_document
+---
+
+
+## Descrpcón
+
+# Analisis de datos de población por municipios en el estado de Jalisco.  
+
+**Hipotesis**: La proporción de hombres/mujeres en localidades menores (con población menos que 50 habitantes) y en resto de poblacones no es homogenea. Existen municipios con marcada disproporcion en la distribución de génros en las localidades menores.
+
+
+## Parámetros generales
+
+Cargar modulos
+
+```{r}
+#library(foreign)   # puede ser necesario para lectura de archvos DBF
+library(sp)
+library(rgdal)
+```
+
+## Datos fuente
+
+Lectura de datos iniciales y su tratamiento inicial
+
+
+```{r}
+# censo de población y vivienda de INEGI como archivo de texto
+censo_2010A <- read.delim("datos/ITER_14TXT10.txt")
+str(censo_2010A)
+
+# tabla de menor tamaño para maypor comodidad
+censo_2010A_sel <- censo_2010A[,c("MUN","NOM_MUN","LOC","LONGITUD",
+                                    "LATITUD","POBTOT","POBMAS","POBFEM")]
+
+# sustituir simbolos de * con NA
+censo_2010A_sel[censo_2010A_sel == "*"] <- NA
+
+# convertir el formato de columnas a numericas
+censo_2010A_sel$POBFEM <- as.numeric(censo_2010A_sel$POBFEM)
+censo_2010A_sel$POBMAS <- as.numeric(censo_2010A_sel$POBMAS)
+
+# consultar tamaño de tabla
+dim(censo_2010A_sel)
+
+# quitar los registros con el código de localidad 0 (corresponden a subtoales)
+censo_2010A_sel <- censo_2010A_sel[censo_2010A_sel$LOC != 0 
+                                   & censo_2010A_sel$LOC != 9999
+                                   & censo_2010A_sel$LOC != 9998,]
+
+# consultar tamaño de tabla despues de limpieza
+dim(censo_2010A_sel)
+
+```
+
+#### Revisión de georefferenciación de localidades
+
+```{r}
+
+# visualiar datos de latitud y longitud como estan en la tabla original
+plot(censo_2010A_sel$LONGITUD, censo_2010A_sel$LATITUD)
+
+#a1 <- substr(censo_2010A_sel$LONGITUD,1,3) 
+#a2 <- substr(censo_2010A_sel$LONGITUD,4,5)
+#a3 <- substr(censo_2010A_sel$LONGITUD,6,7) 
+#a1
+#a2
+#a3
+
+# transformar coordenadas al formato correcto
+censo_2010A_sel$LONGITUD <- -1 * (as.numeric(substr(censo_2010A_sel$LONGITUD,1,3))
+                                + as.numeric(substr(censo_2010A_sel$LONGITUD,4,5)) / 60
+                                + as.numeric(substr(censo_2010A_sel$LONGITUD,6,7)) / 3600
+                                )
+
+censo_2010A_sel$LATITUD <- ( as.numeric(substr(censo_2010A_sel$LATITUD,1,2))
+                                + as.numeric(substr(censo_2010A_sel$LATITUD,3,4)) / 60
+                                + as.numeric(substr(censo_2010A_sel$LATITUD,5,6)) / 3600
+                            )     
+#censo_2010A_sel$LONGITUD
+#censo_2010A_sel$LATITUD
+
+# visualizar datos despues de transformación de coordenadas
+plot(censo_2010A_sel$LONGITUD, censo_2010A_sel$LATITUD)
+
+```
+
+#### Leer y preparar poligonos de municipios
+
+```{r}
+# leer municipios (Shapefile)
+municipios <- readOGR("datos/Municipios.shp", encoding = "UTF-8")
+
+# revisar estructura de tabla de atributos
+str(municipios@data)
+
+# selecciona solo municipios de Jalisco (entidad 14)
+municipios_jalisco <- municipios[municipios@data$CVE_ENT == '14',]
+municipios_jalisco@data$CVE_MUN <- as.numeric(municipios_jalisco@data$CVE_MUN)
+
+# revisar capa de municipios
+plot(municipios_jalisco)
+class(municipios_jalisco)
+summary(municipios_jalisco)
+```
+
+
+## Análisis y resultados
+
+Rvisar estaisticas generales de población, clasificar en localidades en menores (<50 habitantes) y mayores, calcular subtotales por municipio y por tipo de poblacion, calcular proporción de mujeres
+
+```{r}
+summary(censo_2010A_sel[,c("POBTOT","POBFEM","POBMAS")])
+boxplot(censo_2010A_sel[,c("POBFEM","POBMAS")], col = c("coral","lightblue"))
+#hist(censo_2010A_sel$POBTOT)
+
+sum(censo_2010A_sel$POBTOT)
+
+censo_2010A_sel$FEM_PROP <- censo_2010A_sel$POBFEM / (censo_2010A_sel$POBFEM + censo_2010A_sel$POBMAS)
+censo_2010A_sel$POBL_MENORES <- censo_2010A_sel$POBTOT < 50
+
+
+boxplot(censo_2010A_sel$FEM_PROP, col = "yellow", main = "Proporción hombres/mujeres")
+
+subtotales_municipios <- aggregate(cbind(POBFEM, POBMAS) ~ 
+                                     MUN + NOM_MUN + POBL_MENORES, data = censo_2010A_sel, sum)
+
+subtotales_municipios$FEM_PROP <- subtotales_municipios$POBFEM / (subtotales_municipios$POBFEM + subtotales_municipios$POBMAS)
+subtotales_municipios
+
+boxplot(subtotales_municipios$FEM_PROP ~ subtotales_municipios$POBL_MENORES, 
+        col = c("coral","lightblue"))
+
+# generar dos tablas intermedias para poblaciones mayores y menores
+subtotales_municipios_pobl_mayores <- subtotales_municipios[subtotales_municipios$POBL_MENORES == FALSE,
+                                                            c("MUN", "POBFEM", "POBMAS", "FEM_PROP")]
+subtotales_municipios_pobl_menores <- subtotales_municipios[subtotales_municipios$POBL_MENORES == TRUE,
+                                                            c("MUN", "POBFEM", "POBMAS", "FEM_PROP")]
+
+# realizar join de las dos tablas
+subtotales_municipios_pobl <- merge(subtotales_municipios_pobl_mayores,
+                                    subtotales_municipios_pobl_menores,
+                                    by = "MUN", all = TRUE)
+names(subtotales_municipios_pobl) <- c("MUN", "POBFEM_MAYORES", "POBMAS_MYORES", "FEM_PROP_MAYORES", 
+                                       "POBFEM_MENORES", "POBMAS_MENORES", "FEM_PROP_MENORES")
+# revisar la tabla combinada
+head(subtotales_municipios_pobl)
+```
+
+
+## Presentación de resultados
+
+Visualización de dos mapas de municipios  del estado con el gradiente de colores para porcentaje de mujeres en localidades con menos que 50 habitantes, y en localidades con 50 habitantes o mas
+
+```{r fig.width = 10, fig.height = 10}
+
+# realizar join de la tabla vonculada con la capa de poligonos de municipios
+municipios_jalisco <- merge(municipios_jalisco, 
+                                 subtotales_municipios_pobl,
+                                 by.x = "CVE_MUN", by.y = "MUN", all = TRUE)
+
+head(municipios_jalisco@data)
+#municipios_jalisco@data
+
+# categoríaspara clasificación 
+rangos <- c(0,0.25,0.35,0.4,0.45,0.48,0.52,0.55,0.6,0.65,0.75,1)
+
+# generar vectores con gama de colores conforme a categorias
+#as.numeric(cut(municipios_jalisco@data$FEM_PROP_MENORES, rangos))
+municipios_jalisco@data$Col1 <- hcl.colors(12)[as.numeric(cut(municipios_jalisco@data$FEM_PROP_MENORES, 
+                                                         rangos))]
+
+municipios_jalisco@data$Col2 <- hcl.colors(12)[as.numeric(cut(municipios_jalisco@data$FEM_PROP_MAYORES, 
+                                                         rangos))]
+
+# visualizar mapas
+plot(municipios_jalisco, col = municipios_jalisco@data$Col1,
+     main = "Porcentaje de mujeres en localidades menores")
+
+legend("topleft", fill = hcl.colors(12), 
+       #col = municipios_jalisco@data$Col1,
+       legend = rangos * 100)
+
+
+plot(municipios_jalisco, col = municipios_jalisco@data$Col2,
+     main = "Porcentaje de mujeres en localidades mayores")
+
+legend("topleft", fill = hcl.colors(12), 
+       #col = municipios_jalisco@data$Col1,
+       legend = rangos * 100)
+
+```
