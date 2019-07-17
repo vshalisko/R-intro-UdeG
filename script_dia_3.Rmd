@@ -35,6 +35,18 @@ str(arbolado)
 levels(arbolado$Centro)
 ```
 
+### Subconsultas
+
+
+```{r}
+arbolado[arbolado$DTr > 10,]
+arbolado[arbolado$Centro == 'CUCSUR’,]
+arbolado[arbolado[,1] == 'CUCSUR’,]
+arbolado[arbolado$Centro == 'CUCSUR' & arbolado$DTr > 10,]
+arbolado[arbolado$Centro == 'CUCSUR' & arbolado$DTr > 10, c("AB","Alt")]
+```
+
+
 ### B. Estadistica descriptiva
 #### Resumen 
 
