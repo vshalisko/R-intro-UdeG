@@ -1,11 +1,11 @@
 ---
-title: "Ejercicios 1 y 2"
+title: "Ejercicios 2A y 2B"
 author: "Viacheslav Shalisko"
 date: "9/6/2019"
 output: html_document
 ---
 
-# Ejercicio 1
+# Ejercicio 2A
 
 ```{r}
 # datos simulados
@@ -28,7 +28,7 @@ ficha.deportista
 
 ```
 
-# Ejercicio 2
+# Ejercicio 2B
 ## Puntos a), b), c)
 
 ```{r}
@@ -46,7 +46,7 @@ ficha.deportista$recorrido[3,c("punto","hora","minuto","segundo")]
 
 ```
 
-# Ejercicio 2
+# Ejercicio 2B
 ## Punto d) *
 
 ```{r}
@@ -74,7 +74,7 @@ tiempo.recorrido <- difftime(tiempo.final, tiempo.inicio)
 tiempo.recorrido
 ```
 
-# Ejercicio 2
+# Ejercicio 2B
 ## Punto e) **
 
 
