@@ -1,0 +1,141 @@
+---
+title: "Tema 5 (material que contiene elementos de solución del Ejercicio 4A)"
+author: "Viacheslav Shalisko"
+date: "14/7/2019"
+output:
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(leaflet)
+```
+
+## Maunga Whau (Mt Eden) es uno de aproximadamente 50 volcanos en el campo volcánico Auckland
+### Un modelo topográfico de esta montaña con resolución de 10 m estan includios en los *datasets* incluidos en R
+
+```{r}
+## volcano es un matriz números enteros
+str(volcano)
+
+## se puede visualizar por medio de la función image
+image(volcano, asp = 1, xlab = "al norte", ylab = "al oeste")
+title(main = "volcano data: raster")
+
+
+## una alternativa de visualización es representarlo como contornos 
+filled.contour(volcano, color.palette = terrain.colors, asp = 1, xlab = "al norte", ylab = "al oeste")
+title(main = "volcano data: mapa de contornos rellenos")
+
+## o simplemente como contornos
+contour(volcano, asp = 1, xlab = "al norte", ylab = "al oeste")
+title(main = "volcano data: contornos")
+
+```
+
+### Es posible convertir dataset *volcano* a una autentica capa de datos geográfica, para esto se requiere agregar georefferenciación
+
+```{r}
+library(raster)
+
+# se requiere rotar matriz antes de transformar al raster
+volcano.r <- raster(volcano[87:1,61:1])
+class(volcano)
+class(volcano.r)
+
+plot(volcano.r)
+
+y <- seq(from = 6478705, length.out = 87, by = 10)
+x <- seq(from = 2667405, length.out = 61, by = 10)
+
+volcano.r <- raster(volcano[87:1,61:1],
+        xmn = min(x), xmx = max(x), ymn = min(y), ymx = max(y),
+        crs = "+init=epsg:27200")
+plot(volcano.r)
+volcano.r
+```
+
+## Mapas interactivos con *leaflet* (materiales para solucón del ejercicio 4A)
+
+```{r}
+m1 <- leaflet()
+m1 <- addTiles(m1)
+m1 <- addPopups(m1, lng=174.768, lat=-36.852, popup="Lugar de origen de R")
+m1
+```
+
+```{r}
+m2 <- leaflet()
+m2 <- addTiles(m2)
+m2 <- setView(m2, lng=-103.35, lat=20.685, zoom = 14)
+m2 <- addMarkers(m2, lng=-103.3588, lat=20.6744, popup="Rectoría")
+m2 <- addMarkers(m2, lng=-103.3513, lat=20.6937, popup="CUCSH, Geografía")
+m2 <- addPopups(m2, lng=-103.3513, lat=20.6937, popup="estamos aquí")
+m2
+```
+
+```{r}
+m3 <- leaflet()
+m3 <- addTiles(m3, urlTemplate = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png')
+m3 <- setView(m3, lng=-103.56, lat=20.64, zoom = 11)
+m3
+```
+
+### Punto en el centro del Bosque la Primavera
+
+```{r}
+mi_lat <- c(20.64)
+mi_lon <- c(-103.56)
+
+m4 <- leaflet()
+m4 <- addTiles(m4, urlTemplate = 'https://stamen-tiles-{s}.a.ssl.fastly.net/terrain-background/{z}/{x}/{y}{r}.png')
+m4 <- setView(m4, lng=-103.56, lat=20.64, zoom = 11)
+m4 <- addCircles(m4, lng = mi_lon, lat = mi_lat, weight = 5, radius=5, 
+                 color= "red", stroke = TRUE, fillOpacity = 0.8)
+m4
+```
+
+## Material adicional con ** 
+#### Colocar datos de incendios forestales en enero-abril 2019 en mapa del Bosque la Primavera
+
+Datos fuente sobre incendios descargados del sitio
+<https://datos.jalisco.gob.mx/dataset/incendios-forestales-en-bosque-la-primavera-2019/resource/22a0553d-a518-44a1-a4f8>
+
+
+```{r}
+
+incendios <- read.csv("datos/incendios_forestales_opd_blp-ene-abril-2019.csv")
+
+str(incendios)
+
+incendios_coords <- incendios[,c(6:7,17)]
+
+library(sp)
+
+incendios_coords[,1] <- incendios_coords[,1] %>%
+  sub('° ', 'd', .) %>%
+  sub('´ ', '\'', .) %>%
+  sub('´´', '" N', .) %>%
+  char2dms %>%
+  as.numeric
+
+incendios_coords[,2] <- incendios_coords[,2] %>%
+  sub('° ', 'd', .) %>%
+  sub('´ ', '\'', .) %>%
+  sub('´´', '" W', .) %>%
+  char2dms %>%
+  as.numeric
+
+incendios_coords$radius <- log(incendios_coords[,3] + 1,10)
+
+head(incendios_coords)
+
+
+m5 <- leaflet()
+m5 <- addTiles(m5, urlTemplate = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png')
+m5 <- setView(m5, lng=-103.56, lat=20.64, zoom = 11)
+m5 <- addCircles(m5, lng = incendios_coords[,2], lat = incendios_coords[,1], weight = 5 * incendios_coords$radius, radius=5, 
+                 color= "red", stroke = TRUE, fillOpacity = 0.8)
+m5
+```
+
