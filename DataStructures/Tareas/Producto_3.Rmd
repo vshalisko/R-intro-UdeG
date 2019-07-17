@@ -1,0 +1,110 @@
+---
+title: "Producto 3. Ejercicios 2A y 2B"
+author: "Viacheslav Shalisko"
+date: "9/6/2019"
+output: html_document
+---
+
+# Ejercicio 2A
+
+```{r}
+# datos simulados
+ficha.deportista <- list(
+  "nombre" = "Sergei Popov",
+  "nacionalidad" = "URSS",
+  "edad" = 38,
+  "dia_competencia" = "20.10.1968",
+  "recorrido" = data.frame(
+    "punto" = c("inicio","mitad","final"),
+    "hora" = c(9,10,11),
+    "minuto" = c(0,11,25),
+    "segundo" = c(6,43,15),
+    "longitud" = c(19.3328,19.4407,19.4323),
+    "latitud" = c(-99.1870,-99.2046,-99.1333)
+  )
+)
+
+ficha.deportista
+
+```
+
+# Ejercicio 2B
+## Puntos a), b), c)
+
+```{r}
+# nombre
+ficha.deportista$nombre
+
+# momento de inicio
+ficha.deportista$recorrido[1,c("punto","hora","minuto","segundo")]
+
+# momento de final
+ficha.deportista$recorrido[3,c("punto","hora","minuto","segundo")]
+
+
+
+
+```
+
+# Ejercicio 2B
+## Punto d) *
+
+```{r}
+# convertir tiempo de inicio en un objeto date-time (POSIXlt)
+# valores intermedios se presentan para explicar el procedimieno
+tiempo.inicio.vector <- unlist(ficha.deportista$recorrido[1,c("hora","minuto","segundo")])
+tiempo.inicio.vector
+tiempo.inicio.texto <- paste(tiempo.inicio.vector, collapse = ":")
+tiempo.inicio.texto
+fecha.inicio.texto <- paste(ficha.deportista$dia_competencia, tiempo.inicio.texto, sep = " ")
+fecha.inicio.texto
+tiempo.inicio <- strptime(fecha.inicio.texto, "%d.%m.%Y %H:%M:%S")
+class(tiempo.inicio)
+tiempo.inicio
+
+# convertir tiempo del final en un objeto date-time (POSIXlt)
+tiempo.final.vector <- unlist(ficha.deportista$recorrido[3,c("hora","minuto","segundo")])
+tiempo.final.texto <- paste(tiempo.final.vector, collapse = ":")
+fecha.final.texto <- paste(ficha.deportista$dia_competencia, tiempo.final.texto, sep = " ")
+tiempo.final <- strptime(fecha.final.texto, "%d.%m.%Y %H:%M:%S")
+tiempo.final
+
+# calcular ladiferencia de tiempo entre inicio y final
+tiempo.recorrido <- difftime(tiempo.final, tiempo.inicio)
+tiempo.recorrido
+```
+
+# Ejercicio 2B
+## Punto e) **
+
+
+```{r}
+# horas
+tiempo.recorrio.horas <- floor(as.numeric(tiempo.recorrido, units = "hours"))
+tiempo.recorrio.horas
+
+# minutos
+tiempo.recorrio.minutos <- floor(as.numeric(tiempo.recorrido, units = "mins") - 
+                                   60 * tiempo.recorrio.horas)
+tiempo.recorrio.minutos
+
+# segundos
+tiempo.recorrio.segundos <- floor(as.numeric(tiempo.recorrido, units = "secs") -
+                                    3600 * tiempo.recorrio.horas -
+                                    60 * tiempo.recorrio.minutos)
+tiempo.recorrio.segundos
+
+
+# formar la cadena de texto
+paste("Participante", 
+      ficha.deportista$nombre,
+      "logro recorrer el maratón en",
+      tiempo.recorrio.horas, 
+      "horas,",
+      tiempo.recorrio.minutos, 
+      "minutos,",
+      tiempo.recorrio.segundos,
+      "segundos",
+      sep = " ")
+```
+
