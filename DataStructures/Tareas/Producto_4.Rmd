@@ -1,0 +1,91 @@
+---
+title: "Producto 4. Ejercicio 3 (ejemplo de solución)"
+author: "Viacheslav Shalisko"
+date: "17/7/2019"
+output: html_document
+---
+
+## Cargar datos fuente
+
+```{r}
+arbolado <- read.csv("datos/Datos_del_censo.csv")
+dim(arbolado)
+```
+
+## Generar lista de esecies de árboles preliminar
+
+```{r}
+lista_especies <- unique(as.character(arbolado$Especie))
+length(lista_especies)
+```
+
+## Definir funciones auxiliares
+#### Paso opcional, se requiere para depuración de nombres de especies
+
+```{r}
+# función para quetar los espacios en principio y al final de una cadena de texto
+trim <- function(x) gsub("^\\s+|\\s+$", "", x)
+
+# función para poner primera letra de una cadena de texto como mayuscula y otras como minusculas
+simpleCap <- function(x) {
+    paste(toupper(substr(x, 1, 1)), tolower(substr(x, 2, nchar(x))), sep="")
+}
+```
+
+## Depurar nombres de las especies de árboles
+#### Paso opcional, se requiere para depuración de nombres de las especies
+
+```{r}
+arbolado$Especie <- sapply(as.character(arbolado$Especie), simpleCap)
+arbolado$Especie <- sapply(arbolado$Especie, trim)
+
+lista_depurada_especies <- unique(arbolado$Especie)
+arbolado$Especie <- as.factor(arbolado$Especie)
+length(lista_depurada_especies)
+```
+
+## Generación de las graficas por especie de acuerdo con las especificaciones del ejercicio 3
+
+```{r fig.width=8, fig.height=8, results="asis"}
+
+for(i in 1:length(lista_depurada_especies)){
+  
+    # seleccionar registros que corresponden a una especie determinada
+    tabla_especie <- arbolado[arbolado$Especie == lista_depurada_especies[i],]
+    
+    # verificar que número de árboles de la especie es mayór que 50
+    if(dim(tabla_especie)[1] > 50) {
+      
+       # imprimir nombre de especie y número de árboles (utilizando formateo HTML)
+       # paso opcional, se puede sustituir con cat(lista_depurada_especies[i])
+       cat(paste("<h3><i>",lista_depurada_especies[i],"</i></h3>"))
+       cat(paste('<pre class="r"><code>',"n =",dim(tabla_especie)[1],"</code></pre>"))
+       
+       
+       # especificar lienzo para cuatro de graficas 2 x 2
+       # paso opcional, se requiere para colocar catro graficas en un solo cuadro
+       par(mfcol = c(2, 2))
+       
+       # dibujar cuatro gráficas por especie
+       boxplot(tabla_especie$Alt, 
+          col = "coral", main = "Estatura de árboles", ylab = "Estatura (m)")
+       
+       boxplot(tabla_especie$DTr, 
+          col = "lightblue", main = "Diametro del tronco", ylab = "Diametro de tronco (cm)")    
+       
+       
+        hist(tabla_especie$Alt, 
+          col = "coral",  main = "Histograma de estatura de árboles",
+          ylab = "Número de árboles", xlab = "Rangos de estatura (m)") 
+        
+        hist(tabla_especie$DTr, 
+          col = "lightblue",  main = "Histograma de DAP",
+          ylab = "Número de árboles", xlab = "Rangos de DAP (cm)") 
+          
+    }
+}
+
+```
+
+
+
