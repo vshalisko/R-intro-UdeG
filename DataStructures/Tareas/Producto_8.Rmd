@@ -1,0 +1,172 @@
+---
+title: "Tema 8. Proyecto 3"
+author: "Viacheslav Shalisko"
+date: "9 de abril de 2019"
+output: html_document
+---
+
+# Interpolación de residuales para modelo de predicción de temperaturas en el Occidente de México
+
+### Cargar las biblioteces requeridas
+
+```{r}
+library(sp)
+library(raster)
+library(rgdal)
+library(foreign)
+library(RColorBrewer)
+#library(rasterVis)
+library(mgcv)
+```
+
+### Definir variables 
+
+```{r}
+# definir área de trabajo
+mi_recorte <- extent(c(-110, -100, 17, 23))
+
+escala_t <- seq(8, 32, by=1)
+
+# definir colores para temperatura
+mis_colores <- colorRampPalette(c("blue","lightyellow","red"))(length(escala_t)-1)
+mis_colores_residuales <- colorRampPalette(c("coral", "lightblue"))(10)
+
+# nombre de capa raster con mdelo paramétrico de temperatura (sin extensión)
+nombre_raster_t <- "prediccion_tjunio_32bits"
+# nombre de la columna en datos SMN con valores de temperatura correctos
+nombre_columna_t <- "TJUN"
+```
+
+## Lectura de los archivos fuente
+1) GeoTIFF
+2) Shapefile de puntos (SHP)
+3) Tabla DBF
+
+```{r}
+# raster con datos del modelo paramétrico
+temp_parametrico <- raster("datos/prediccion_tjunio_32bits.tif")
+temp_parametrico
+
+# puntos SMN
+smn <- readOGR("datos/Estaciones_SMN_alt_ok.shp")
+smn
+
+# tabla de temperaturas SMN
+temp <- read.dbf("datos/Temp.dbf")
+head(temp)
+```
+
+## Visualización y recorte de datos fuente (raster de temeraturas estimados con el modeo paramétrico)
+
+```{r}
+temp_parametrico_recorte <- crop(temp_parametrico, mi_recorte)
+
+plot(temp_parametrico, zlim = c(8, 32), col = mis_colores, main = "antes de recorte")
+plot(temp_parametrico_recorte, zlim = c(8, 32), col = mis_colores, main = "despues de recorte")
+```
+
+## Vincular puntos SMN y datos de temperatura (JOIN)
+
+```{r}
+smn <- merge(smn, temp, by = "NUMERO_DE_")
+smn
+```
+
+## Realizar muestreo de predicción del modelo paramétrico en los puntos de SMN
+#### Vincular resultados de muestreo con capa de pntos y depurar
+
+```{r}
+# muestreo eon todos puntos SMN (como data.frame)
+temp_parametrico_muestreo <- extract(temp_parametrico_recorte, smn, df = TRUE)
+
+# vinculación de los resultados de muestreo con el conjunto de puntos (su tabla de atributos)
+smn@data <- cbind(smn@data, temp_parametrico_muestreo)
+
+# revisar capa de datos SMN despues de viclular columnas de muestreo
+smn
+
+# seleccionar solo puntos SMN con resultados de muestreo
+mascara_puntos_muestreados <- !is.na(smn@data[,nombre_raster_t])
+smn_selectos <- smn[mascara_puntos_muestreados,]
+
+# descartar registros con temperaturas incorrectas (T = 0)
+mascara_temp_ok <- smn_selectos@data[,nombre_columna_t] != 0
+smn_selectos <- smn_selectos[mascara_temp_ok,]
+
+# revisar capa de puntos SMN selectos
+smn_selectos
+head(smn_selectos@data)
+
+# visualizar puntos SMN antes y despues de selección
+plot(smn, col = "lightgray")
+plot(smn_selectos, col = "black", add = TRUE)
+```
+
+## Calcular y visualizar los residuales
+
+```{r}
+# calcular residuales: de valores observados restar los valores estimados con el modelo paramétriico 
+smn_selectos@data$residuales <- smn_selectos@data[,nombre_columna_t] - smn_selectos@data[,nombre_raster_t]
+
+# visualizar residuales
+bubble(smn_selectos, zcol='residuales', scales = list(draw = TRUE),
+       col = c("coral", "lightblue"), main = "Distribución de residuales",
+       key.space = list("right"))
+```
+
+## Construir un modelo GAM para interpolación de residuales 
+
+```{r}
+# colocar datos en variables con nombres cortos
+lon <- smn_selectos@coords[,1]
+lat <- smn_selectos@coords[,2]
+res <- smn_selectos@data$residuales
+
+interp_resid <- gam(res ~ s(lon, lat, k = 150))
+
+summary(interp_resid)
+gam.check(interp_resid)
+plot(interp_resid, n = 1000)
+```
+
+## Generar raster de superficie de ajuste de temperaturas
+#### El proceso de interpolación puede durar algunos minutos (depende del tamaño de área de interpolación)
+
+```{r}
+# generar capas con valores numericos de latitud y longitud
+r_X <- init(temp_parametrico_recorte, 'x')
+r_Y <- init(temp_parametrico_recorte, 'y')
+
+# colocar capas de latitud y longitud en un solo objeto raster
+# los nombres de capas deben ser mismos que variables en GAM
+r_latlon <- stack(r_X,r_Y)
+names(r_latlon) <- c("lon","lat")
+
+r_latlon
+
+# generar superficie de residuales (paso lento)
+raster_residuales <- predict(r_latlon, interp_resid)
+
+raster_residuales
+
+plot(raster_residuales, asp = 1, col = mis_colores_residuales)
+```
+
+## Realizar corección de raster de temperaturas
+
+```{r}
+# sumar la superficie interpolada con el modelo paramétrico y residuales interpolados
+temp_corregido <- temp_parametrico_recorte + raster_residuales
+
+plot(temp_parametrico_recorte, zlim = c(8, 32), col = mis_colores, main = "Temperaturas sin corrección")
+plot(temp_corregido, zlim = c(8, 32), col = mis_colores, main = "Temperaturas despues de corrección")
+```
+
+
+## Guardar raster de resultados de corrección en GeoTIFF (Float 32 bits)
+
+```{r}
+writeRaster(temp_corregido, filename = "datos/corregido_tjunio_32bits.tif", 
+            format="GTiff", datatype = "FLT4S", overwrite = TRUE)
+    
+```
