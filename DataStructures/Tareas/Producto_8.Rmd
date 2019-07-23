@@ -15,7 +15,6 @@ library(raster)
 library(rgdal)
 library(foreign)
 library(RColorBrewer)
-#library(rasterVis)
 library(mgcv)
 ```
 
@@ -23,7 +22,7 @@ library(mgcv)
 
 ```{r}
 # definir área de trabajo
-mi_recorte <- extent(c(-110, -100, 17, 23))
+mi_recorte <- extent(-110, -100, 17, 23)
 
 escala_t <- seq(8, 32, by=1)
 
@@ -76,20 +75,21 @@ smn
 #### Vincular resultados de muestreo con capa de pntos y depurar
 
 ```{r}
-# muestreo eon todos puntos SMN (como data.frame)
+# muestreo en todos puntos de estaciones SMN (resutados como data.frame)
 temp_parametrico_muestreo <- extract(temp_parametrico_recorte, smn, df = TRUE)
 
-# vinculación de los resultados de muestreo con el conjunto de puntos (su tabla de atributos)
+# vinculación de los resultados de muestreo con el conjunto de puntos (más precisamente con su tabla de atributos)
+# nota: no se requere realizar JOIN (= merge), ya que tenemos dos tablas con mismo largo y misma secuencia de elementos
 smn@data <- cbind(smn@data, temp_parametrico_muestreo)
 
 # revisar capa de datos SMN despues de viclular columnas de muestreo
 smn
 
-# seleccionar solo puntos SMN con resultados de muestreo
+# seleccionar solo puntos SMN con resultados de muestreo, los puntos sin datos (NA) se omiten
 mascara_puntos_muestreados <- !is.na(smn@data[,nombre_raster_t])
 smn_selectos <- smn[mascara_puntos_muestreados,]
 
-# descartar registros con temperaturas incorrectas (T = 0)
+# descartar registros con temperatura no valida (cuando en la tabla con valores de temperatura observada T = 0)
 mascara_temp_ok <- smn_selectos@data[,nombre_columna_t] != 0
 smn_selectos <- smn_selectos[mascara_temp_ok,]
 
@@ -131,6 +131,7 @@ plot(interp_resid, n = 1000)
 
 ## Generar raster de superficie de ajuste de temperaturas
 #### El proceso de interpolación puede durar algunos minutos (depende del tamaño de área de interpolación)
+#### en caso que se requiere repetir pruebas muchas veces puede ser utiili hablitar el parámetro del 'chunk' *cache = TRUE*
 
 ```{r}
 # generar capas con valores numericos de latitud y longitud
