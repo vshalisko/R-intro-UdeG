@@ -23,7 +23,7 @@ length(lista_especies)
 #### Paso opcional, se requiere para depuración de nombres de especies
 
 ```{r}
-# función para quetar los espacios en principio y al final de una cadena de texto
+# función para quitar los espacios en principio y al final de una cadena de texto
 trim <- function(x) gsub("^\\s+|\\s+$", "", x)
 
 # función para poner primera letra de una cadena de texto como mayuscula y otras como minusculas
@@ -58,6 +58,7 @@ for(i in 1:length(lista_depurada_especies)){
       
        # imprimir nombre de especie y número de árboles (utilizando formateo HTML)
        # paso opcional, se puede sustituir con cat(lista_depurada_especies[i])
+       cat("<p style=\"page-break-before: always\">")
        cat(paste("<h3><i>",lista_depurada_especies[i],"</i></h3>"))
        cat(paste('<pre class="r"><code>',"n =",dim(tabla_especie)[1],"</code></pre>"))
        
@@ -81,6 +82,7 @@ for(i in 1:length(lista_depurada_especies)){
         hist(tabla_especie$DTr, 
           col = "lightblue",  main = "Histograma de DAP",
           ylab = "Número de árboles", xlab = "Rangos de DAP (cm)") 
+        cat("</p>")
           
     }
 }
