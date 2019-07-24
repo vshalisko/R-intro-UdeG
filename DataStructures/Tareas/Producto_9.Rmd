@@ -89,6 +89,7 @@ points(ocurrencias_especie_entrenamiento[,2], ocurrencias_especie_entrenamiento[
  Para lograr que funciona la aplicacipón se requiere descargar y manualmente copiar al carpeta correspondiente el 
  archivo **maxent.jar**, la carpeta es donde en su computadora se instalan los modulos de usuario, por ejemplo: 
  Documents/R/win-library/3.6/dismo/java/
+ ligaa para descarga de **maxent.jar**: https://github.com/mrmaxent/Maxent/tree/master/ArchivedReleases/3.3.3a
 
 ```{r}
 modelo_maxent <- maxent(x = bio_vars, 
