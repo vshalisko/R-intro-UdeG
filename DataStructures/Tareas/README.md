@@ -10,3 +10,8 @@
 
 *Producto 6* = *Proyecto 1*: Producto_6.Rmd, Producto_6.pdf, Producto_6.html
 
+*Producto 7* = *Proyecto 2*: Producto_7.Rmd, Producto_7.pdf, Producto_7.html
+
+*Producto 8* = *Proyecto 3*: Producto_8.Rmd, Producto_8.pdf, Producto_8.html
+
+*Producto 9* = *Proyecto 4*: Producto_9.Rmd, Producto_9.pdf, Producto_9.html
