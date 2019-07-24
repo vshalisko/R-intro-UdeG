@@ -1,0 +1,165 @@
+---
+title: "Tema 9. Proyecto 4"
+author: "Viacheslav Shalisko"
+date: "23 de julio de 2019"
+output: html_document
+---
+
+# Modelo correlativo de distribución de una especie biológica
+
+### Cargar las biblioteces requeridas
+
+```{r}
+library(sp)
+library(raster)
+library(dismo)
+```
+
+
+## Lectura de los archivos fuente
+### 1) GeoTIFF con 19 capas dd variables BIOCLIM (WorldClim 2)
+
+```{r}
+# raster con variables BIOCLIM (WorldClim 2)
+bio_vars <- stack("datos/biovars_OM_30sec.tif")
+bio_vars
+
+plot(bio_vars,c(1:9), col = grey(1:100/100), nc=3)
+plot(bio_vars,c(10:18), col = grey(1:100/100), nc=3)
+```
+
+### 2) Tabla GBiF con registros de presencia
+
+```{r}
+# tabla de registrois de ocurrencia
+ocurrencias <- read.delim("datos/0016216-190621201848488.csv")
+dim(ocurrencias)
+str(ocurrencias)
+
+levels(ocurrencias$species)
+
+```
+
+### Generar mascara de tierra firme
+
+```{r}
+mask_reclass_table <- matrix(c(-Inf, Inf, 1), ncol=3, byrow=TRUE)
+bio_vars_mask <- reclassify(subset(bio_vars,1),mask_reclass_table)
+
+# representar todos registros
+plot(bio_vars_mask, legend = FALSE, main = "Puntos de presencia")
+points(ocurrencias$decimalLongitude, ocurrencias$decimalLatitude, cex = 0.5)
+
+```
+
+## Generar 1000 puntos aleatorios para muestreo de la variabilidad ambiental en zona de tierra firme
+
+```{r}
+set.seed(0)
+puntos_aleatorios_fondo <- randomPoints(bio_vars_mask, 1000)
+```
+
+## Seleccionar la especie de interés (solo columnas de nombre de especie y coordenadas)
+
+```{r}
+ocurrencias_especie <- ocurrencias[ocurrencias$species == "Quercus candicans",c("species","decimalLongitude","decimalLatitude")]
+
+dim(ocurrencias_especie)
+head(ocurrencias_especie)
+```
+
+## Subdividir datos en dos juegos: entranamiento y control
+
+```{r}
+# separar datos
+fold <- kfold(ocurrencias_especie, k = 4)
+
+ocurrencias_especie_entrenamiento <- ocurrencias_especie[ fold != 4, ]
+ocurrencias_especie_control <- ocurrencias_especie[ fold == 4, ]
+
+plot(bio_vars_mask, legend = FALSE, main = "Puntos de presencia de la especie y muestreo")
+points(puntos_aleatorios_fondo, col = "blue", cex = 0.5, pch = 3)
+points(ocurrencias_especie_control[,2], ocurrencias_especie_control[,3], 
+       col = "red", cex = 0.8, pch = 19)
+points(ocurrencias_especie_entrenamiento[,2], ocurrencias_especie_entrenamiento[,3], 
+       col = "black", cex = 0.8, pch = 19)
+```
+
+## Inferir el modelo de entropía máxima
+ Para lograr que funciona la aplicacipón se requiere descargar y manualmente copiar al carpeta correspondiente el 
+ archivo **maxent.jar**, la carpeta es donde en su computadora se instalan los modulos de usuario, por ejemplo: 
+ Documents/R/win-library/3.6/dismo/java/
+
+```{r}
+modelo_maxent <- maxent(x = bio_vars, 
+                        p = ocurrencias_especie_entrenamiento[,2:3],
+                        a = puntos_aleatorios_fondo)
+
+```
+
+## Revisar la contribución de variables
+
+```{r}
+plot(modelo_maxent)
+```
+
+## Revisar las curvas de respuesta
+
+```{r  fig.with = 12, fig.height = 8}
+response(modelo_maxent)
+```
+
+## Predicción
+
+```{r}
+prediccion <- predict(bio_vars, modelo_maxent, progress='window')
+prediccion
+plot(prediccion, main = "Probabilidad de presencia estimada")
+```
+
+## Evaluación
+
+```{r}
+evaluacion <- evaluate(p = ocurrencias_especie_control[,2:3], 
+              a = puntos_aleatorios_fondo, 
+              x = bio_vars,
+              model = modelo_maxent)
+evaluacion
+
+par(mfrow=c(1, 3))
+plot(evaluacion, 'ROC')
+density(evaluacion)
+boxplot(evaluacion, col=c('lightblue','coral'), notch=TRUE)
+
+umbrales <- threshold(evaluacion)
+umbrales
+
+umbrales$spec_sens
+
+
+```
+
+## Reclasificación de acuerdo con el umbral de igualidad entre la especificidad y la sensibilidad
+
+```{r}
+especie_reclass_table <- matrix(c(-Inf, umbrales$spec_sens, 0, 
+                               umbrales$spec_sens, Inf, 1), 
+                             ncol=3, byrow=TRUE)
+prediccion_presencia <- reclassify(prediccion,especie_reclass_table)
+
+plot(prediccion_presencia, main = "Probable presencia", legend = FALSE)
+points(ocurrencias_especie[,2], ocurrencias_especie[,3], 
+       col = "black", cex = 0.8)
+
+```
+
+
+## Guardar los resultados en formato raster
+
+```{r}
+writeRaster(prediccion, filename = "datos/probabilidad_32bits.tif", 
+            format="GTiff", datatype = "FLT4S", overwrite = TRUE)
+
+writeRaster(prediccion_presencia, filename = "datos/presencia_16bits.tif", 
+            format="GTiff", datatype = "INT2S", overwrite = TRUE)    
+```
