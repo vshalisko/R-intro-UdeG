@@ -41,8 +41,8 @@ censo_2010A_sel <- censo_2010A[,c("MUN","NOM_MUN","LOC","LONGITUD",
 censo_2010A_sel[censo_2010A_sel == "*"] <- NA
 
 # convertir el formato de columnas a numericas
-censo_2010A_sel$POBFEM <- as.numeric(censo_2010A_sel$POBFEM)
-censo_2010A_sel$POBMAS <- as.numeric(censo_2010A_sel$POBMAS)
+censo_2010A_sel$POBFEM <- as.numeric(as.character(censo_2010A_sel$POBFEM))
+censo_2010A_sel$POBMAS <- as.numeric(as.character(censo_2010A_sel$POBMAS))
 
 # consultar tamaño de tabla
 dim(censo_2010A_sel)
@@ -115,7 +115,7 @@ Rvisar estaisticas generales de población, clasificar en localidades en menores
 
 ```{r}
 summary(censo_2010A_sel[,c("POBTOT","POBFEM","POBMAS")])
-boxplot(censo_2010A_sel[,c("POBFEM","POBMAS")], col = c("coral","lightblue"))
+boxplot(log(censo_2010A_sel[,c("POBFEM","POBMAS")]), col = c("coral","lightblue"))
 #hist(censo_2010A_sel$POBTOT)
 
 sum(censo_2010A_sel$POBTOT)
@@ -135,6 +135,12 @@ subtotales_municipios
 boxplot(subtotales_municipios$FEM_PROP ~ subtotales_municipios$POBL_MENORES, 
         col = c("coral","lightblue"))
 
+
+```
+
+## Reacomodar y vincular datos en tablas
+
+```{r}
 # generar dos tablas intermedias para poblaciones mayores y menores
 subtotales_municipios_pobl_mayores <- subtotales_municipios[subtotales_municipios$POBL_MENORES == FALSE,
                                                             c("MUN", "POBFEM", "POBMAS", "FEM_PROP")]
@@ -149,40 +155,39 @@ names(subtotales_municipios_pobl) <- c("MUN", "POBFEM_MAYORES", "POBMAS_MYORES",
                                        "POBFEM_MENORES", "POBMAS_MENORES", "FEM_PROP_MENORES")
 # revisar la tabla combinada
 head(subtotales_municipios_pobl)
-```
 
-
-## Presentación de resultados
-
-Visualización de dos mapas de municipios  del estado con el gradiente de colores para porcentaje de mujeres en localidades con menos que 50 habitantes, y en localidades con 50 habitantes o mas
-
-```{r fig.width = 10, fig.height = 10}
-
-# realizar join de la tabla vonculada con la capa de poligonos de municipios
+# realizar JOIN de la tabla vonculada con la capa de poligonos de municipios
 municipios_jalisco <- merge(municipios_jalisco, 
                                  subtotales_municipios_pobl,
                                  by.x = "CVE_MUN", by.y = "MUN", all = TRUE)
 
 head(municipios_jalisco@data)
 #municipios_jalisco@data
+```
 
-# categoríaspara clasificación 
-rangos <- c(0,0.25,0.35,0.4,0.45,0.48,0.52,0.55,0.6,0.65,0.75,1)
+
+## Presentación de resultados
+
+#### Visualización de dos mapas de municipios  del estado con el gradiente de colores para porcentaje de mujeres en localidades con menos que 50 habitantes, y en localidades con 50 habitantes o mas
+#### Vesión con *hcl.colors()*
+
+```{r fig.width = 10, fig.height = 10}
+
+# categorías para clasificación 
+rangos <- c(0,0.3,0.4,0.45,0.47,0.49,0.51,0.53,0.55,0.6,0.7,1)
 
 # generar vectores con gama de colores conforme a categorias
-#as.numeric(cut(municipios_jalisco@data$FEM_PROP_MENORES, rangos))
-municipios_jalisco@data$Col1 <- hcl.colors(12)[as.numeric(cut(municipios_jalisco@data$FEM_PROP_MENORES, 
-                                                         rangos))]
+municipios_jalisco@data$Col1 <- hcl.colors(12)[as.numeric(
+        cut(municipios_jalisco@data$FEM_PROP_MENORES, rangos))]
 
-municipios_jalisco@data$Col2 <- hcl.colors(12)[as.numeric(cut(municipios_jalisco@data$FEM_PROP_MAYORES, 
-                                                         rangos))]
+municipios_jalisco@data$Col2 <- hcl.colors(12)[as.numeric(
+        cut(municipios_jalisco@data$FEM_PROP_MAYORES, rangos))]
 
 # visualizar mapas
 plot(municipios_jalisco, col = municipios_jalisco@data$Col1,
      main = "Porcentaje de mujeres en localidades menores")
 
 legend("topleft", fill = hcl.colors(12), 
-       #col = municipios_jalisco@data$Col1,
        legend = rangos * 100)
 
 
@@ -190,7 +195,43 @@ plot(municipios_jalisco, col = municipios_jalisco@data$Col2,
      main = "Porcentaje de mujeres en localidades mayores")
 
 legend("topleft", fill = hcl.colors(12), 
-       #col = municipios_jalisco@data$Col1,
        legend = rangos * 100)
 
 ```
+
+#### Alternativa de gradiente de colores con *terrain.colors()*
+
+```{r}
+
+municipios_jalisco@data$Col1 <- terrain.colors(12)[as.numeric(cut(municipios_jalisco@data$FEM_PROP_MENORES, 
+                                                         rangos))]
+# visualizar mapas
+plot(municipios_jalisco, col = municipios_jalisco@data$Col1,
+     main = "Porcentaje de mujeres en localidades menores")
+
+legend("topleft", fill = terrain.colors(12), 
+       legend = rangos * 100)
+```
+
+#### Grafica de barras por municipio
+
+```{r fig.height=25, fig.width=10}
+
+par(mar=c(5,15,1,1), cex = 0.9)
+# barplot
+barplot(t(as.matrix(
+            municipios_jalisco@data[
+                    order(municipios_jalisco@data$FEM_PROP_MENORES),
+                    c("FEM_PROP_MENORES","FEM_PROP_MAYORES")
+            ]
+        )), 
+        names.arg = municipios_jalisco@data[order(municipios_jalisco@data$FEM_PROP_MENORES),"NOM_MUN"],
+        main = "Proporción mujeres/hombres por municipio de Jalisco",
+        xlab = "proporción de mujeres",
+        col = c("lightgreen","tan"),
+        beside = TRUE, horiz = TRUE, las = 1)
+
+legend("bottomright", fill = c("lightgreen","tan"), bty = "n",
+       legend = c("localidades menores","localidades mayores"))
+```
+
