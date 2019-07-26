@@ -12,6 +12,7 @@ output: html_document
 ```{r}
 library(sp)
 library(raster)
+library(rJava)
 library(dismo)
 ```
 
