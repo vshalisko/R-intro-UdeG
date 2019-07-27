@@ -6,7 +6,7 @@ output: html_document
 ---
 
 # Modelo correlativo de distribución de una especie biológica
-### Variante con SVM para casos cuando MaxEnt no funciono
+### Variante con SVM (Support Vechot Machones) para casos cuando el metodo MaxEnt no funciono (por ejemplo, por problemas en configuración de rJava)
 
 ### Cargar las biblioteces requeridas
 
