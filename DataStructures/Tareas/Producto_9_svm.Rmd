@@ -6,7 +6,7 @@ output: html_document
 ---
 
 # Modelo correlativo de distribución de una especie biológica
-### Variante con SVM (Support Vechot Machones) para casos cuando el metodo MaxEnt no funciono (por ejemplo, por problemas en configuración de rJava)
+### Variante con SVM para casos cuando MaxEnt no funciono
 
 ### Cargar las biblioteces requeridas
 
@@ -88,11 +88,14 @@ points(ocurrencias_especie_entrenamiento[,2], ocurrencias_especie_entrenamiento[
 ```
 
 ## Inferir el modelo SVM (Support Vector Machines)
+#### Búsqueda del modelo óptimo puede tardar algunos minutos
 
-```{r}
+```{r warning=FALSE}
 # generar vector de presincias (1) y valores del fondo (0) para ariabl independiente
 y <- c(rep(1, dim(ocurrencias_especie_entrenamiento)[1]),
        rep(0, dim(puntos_aleatorios_fondo)[1]))
+
+names(bio_vars) <- paste('b',1:19,sep='')
 
 # generar dataframe de variables inependientes para presencias y ausencias
 x_presencia <- extract(bio_vars, ocurrencias_especie_entrenamiento[,2:3])
@@ -100,12 +103,19 @@ x_fondo <- extract(bio_vars, puntos_aleatorios_fondo)
 # acomodar valores de muestreo de variables independientes en una sola tabla
 x <- rbind(x_presencia, x_fondo)
 
-specie_data <- cbind(x,y)
-names(specie_data) <- c(paste('b',1:19,sep=''),"y")
+specie_data <- as.data.frame(cbind(x,y))
+dim(specie_data)
+str(specie_data)
 
-# inferir el modelo SVM
-modelo_svm <- svm(y ~ ., data = specie_data, cross = 5)
+# inferir el modelo SVM (un solo modelo, sin búsqueda de parámetros óptimos)
+#modelo_svm <- svm(y ~ ., data = specie_data, cross = 5)
 
+# buscar los parámetros óptimos del modelo SVM 
+tuneResult <- tune(svm, y ~ .,  data = specie_data, cross = 5,
+        ranges = list(epsilon = seq(0,0.5,0.05), cost = 2^(0:3)))
+print(tuneResult) 
+plot(tuneResult)
+modelo_svm <- tuneResult$best.model
 ```
 
 ## Revisar modelo
@@ -113,7 +123,6 @@ modelo_svm <- svm(y ~ ., data = specie_data, cross = 5)
 ```{r}
 str(modelo_svm)
 summary(modelo_svm)
-plot(modelo_svm, data = specie_data, x ~ b1)
 ```
 
 
