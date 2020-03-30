@@ -1,0 +1,61 @@
+---
+title: "Ejercicio 6B"
+author: "Viacheslav Shalisko"
+date: "30/3/2020"
+output:
+  html_document: default
+---
+
+# COVID-19 en México 29.03.2020
+
+## Mapas interactivos con *leaflet* 
+## (materiales para solucón del ejercicio 6B)
+
+#### Colocar datos sobre los casos de COVID-19 conocidos para el dia 29 de marzo del 2020 en mapa de México (Cada estado esta representado por su capital)
+
+Datos fuente sobre los casos fueron descargados desde los sitios web
+<https://www.unionguanajuato.mx/articulo/2020/03/29/cultura/casos-de-coronavirus-en-mexico-por-estado-estadisticas-covid-19>
+y <https://coronavirus.gob.mx/>
+
+
+```{r}
+library(leaflet)
+library(sp)
+
+casos <- read.csv("COVID19_Mexico_29032020.csv")
+
+head(casos)
+names(casos) <- c("estados","latitud","longitud","casos")
+
+casos$radius <- log(casos$casos + 1, 2.71828182846)
+str(casos)
+```
+
+
+
+## Mapa con tamaño de circulos proporcional al LN de número de casos registrados
+
+```{r fig.width = 9, fig.height = 6}
+
+ m5 <- leaflet()
+ m5 <- addTiles(m5)
+ m5 <- setView(m5, lng=-101, lat=24, zoom = 5)
+ m5 <- addCircleMarkers(m5, lng = casos$longitud, lat = casos$latitud, weight = 5 * casos$radius, radius=5, 
+                  color= "red", stroke = TRUE, fillOpacity = 0.8)
+ 
+ m5
+```
+
+## Versión del mismo mapa con agrupación de puntos en clusters
+
+```{r fig.width = 9, fig.height = 6}
+
+ m5 <- leaflet()
+ m5 <- addTiles(m5)
+ m5 <- setView(m5, lng=-101, lat=24, zoom = 5)
+ m5 <- addCircleMarkers(m5, lng = casos$longitud, lat = casos$latitud, weight = 5 * casos$radius, radius=5, 
+                  color= "red", stroke = TRUE, fillOpacity = 0.8, clusterOptions = markerClusterOptions())
+ 
+ m5
+```
+
