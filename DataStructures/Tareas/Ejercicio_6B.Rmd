@@ -50,12 +50,50 @@ str(casos)
 
 ```{r fig.width = 9, fig.height = 6}
 
- m5 <- leaflet()
- m5 <- addTiles(m5)
- m5 <- setView(m5, lng=-101, lat=24, zoom = 5)
- m5 <- addCircleMarkers(m5, lng = casos$longitud, lat = casos$latitud, weight = 5 * casos$radius, radius=5, 
+ m2 <- leaflet()
+ m2 <- addTiles(m2)
+ m2 <- setView(m2, lng=-101, lat=24, zoom = 5)
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, weight = 5 * casos$radius, radius=5, 
                   color= "red", stroke = TRUE, fillOpacity = 0.8, clusterOptions = markerClusterOptions())
  
- m5
+ m2
 ```
 
+## Versión del mismo mapa con capa que se puede deshabilitar y leyenda
+
+```{r fig.width = 9, fig.height = 6}
+
+library(htmltools)
+
+ m1 <- leaflet()
+ m1 <- addTiles(m1)
+ m1 <- setView(m1, lng=-101, lat=24, zoom = 5)
+ m1 <- addCircleMarkers(m1, lng = casos$longitud, lat = casos$latitud, weight = 5 * casos$radius, radius=5, 
+                  color= "red", stroke = TRUE, fillOpacity = 0.8, group = "circles")
+ 
+ 
+ addLegendCustom <- function(map, title, colors, labels, sizes, position, group, opacity = 0.5) {
+  #colorAdditions <- paste0(colors, "; width:", sizes, "px; height:", sizes, "px")
+  colorAdditions <- paste0(colors, "; border-radius: 50%; width:", sizes, "px; height:", sizes, "px")
+  labelAdditions <- paste0("<div style='display: inline-block;height: ", 
+                           sizes, "px;margin-top: 4px;line-height: ", sizes, "px;'>", 
+                           labels, "</div>")
+  return(addLegend(map, colors = colorAdditions, 
+                   labels = labelAdditions, opacity = opacity, 
+                   position = position, group = group, title = title))
+}
+
+m1 <- addLegendCustom(m1, 
+                      title = "COVID-19",
+                      group = "circles",
+                      position = "bottomleft",
+                      colors = c("red", "red", "red"), 
+                      labels = c("1-20", "20-50", ">50"), 
+                      sizes = c(5 * log(20,e) + 5, 
+                                5 * log(50,e) + 5, 
+                                5 * log(200,e) + 5))
+
+m1 <- addLayersControl(m1, overlayGroups = c("circles"))
+m1
+
+```
