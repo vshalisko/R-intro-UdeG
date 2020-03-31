@@ -62,13 +62,10 @@ str(casos)
 ## Versión del mismo mapa con capa que se puede deshabilitar y leyenda
 
 ```{r fig.width = 9, fig.height = 6}
-
-library(htmltools)
-
  m1 <- leaflet()
  m1 <- addTiles(m1)
  m1 <- setView(m1, lng=-101, lat=24, zoom = 5)
- m1 <- addCircleMarkers(m1, lng = casos$longitud, lat = casos$latitud, weight = 5 * casos$radius, radius=5, 
+ m1 <- addCircleMarkers(m1, lng = casos$longitud, lat = casos$latitud, weight = 5 * casos$radius, radius = 0, 
                   color= "red", stroke = TRUE, fillOpacity = 0.8, group = "circles")
  
  
@@ -89,9 +86,9 @@ m1 <- addLegendCustom(m1,
                       position = "bottomleft",
                       colors = c("red", "red", "red"), 
                       labels = c("1-20", "20-50", ">50"), 
-                      sizes = c(5 * log(20,e) + 5, 
-                                5 * log(50,e) + 5, 
-                                5 * log(200,e) + 5))
+                      sizes = c(5 * log(20,e), 
+                                5 * log(50,e), 
+                                5 * log(200,e)))
 
 m1 <- addLayersControl(m1, overlayGroups = c("circles"))
 m1
