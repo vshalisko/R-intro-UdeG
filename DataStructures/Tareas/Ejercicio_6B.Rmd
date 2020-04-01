@@ -26,8 +26,8 @@ casos <- read.csv("COVID19_Mexico_29032020.csv")
 
 head(casos)
 names(casos) <- c("estados","latitud","longitud","casos")
-
-casos$radius <- log(casos$casos + 1, 2.71828182846)
+e <- 2.71828182846
+casos$radius <- log(casos$casos + 1, e)
 str(casos)
 ```
 
