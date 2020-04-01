@@ -66,14 +66,13 @@ str(casos)
  m1 <- addTiles(m1)
  m1 <- setView(m1, lng=-101, lat=24, zoom = 5)
  m1 <- addCircleMarkers(m1, lng = casos$longitud, lat = casos$latitud, weight = 5 * casos$radius, radius = 0, 
-                  color= "red", stroke = TRUE, fillOpacity = 0.8, group = "circles")
+                  color= "red", stroke = TRUE, fillOpacity = 0.8, group = "casos")
  
  
  addLegendCustom <- function(map, title, colors, labels, sizes, position, group, opacity = 0.5) {
-  #colorAdditions <- paste0(colors, "; width:", sizes, "px; height:", sizes, "px")
   colorAdditions <- paste0(colors, "; border-radius: 50%; width:", sizes, "px; height:", sizes, "px")
-  labelAdditions <- paste0("<div style='display: inline-block;height: ", 
-                           sizes, "px;margin-top: 4px;line-height: ", sizes, "px;'>", 
+  labelAdditions <- paste0("<div style='display: inline-block; height: ", 
+                           sizes, "px; margin-top: 4px;line-height: ", sizes, "px;'>", 
                            labels, "</div>")
   return(addLegend(map, colors = colorAdditions, 
                    labels = labelAdditions, opacity = opacity, 
@@ -82,7 +81,7 @@ str(casos)
 
 m1 <- addLegendCustom(m1, 
                       title = "COVID-19",
-                      group = "circles",
+                      group = "casos",
                       position = "bottomleft",
                       colors = c("red", "red", "red"), 
                       labels = c("1-20", "20-50", ">50"), 
@@ -90,7 +89,7 @@ m1 <- addLegendCustom(m1,
                                 5 * log(50,e), 
                                 5 * log(200,e)))
 
-m1 <- addLayersControl(m1, overlayGroups = c("circles"))
+m1 <- addLayersControl(m1, overlayGroups = c("casos"))
 m1
 
 ```
