@@ -41,7 +41,7 @@ str(casos)
  m5 <- leaflet()
  m5 <- addTiles(m5)
  m5 <- setView(m5, lng=-101, lat=24, zoom = 5)
- m5 <- addCircleMarkers(m5, lng = casos$longitud, lat = casos$latitud, weight = 5 * casos$radius, radius=5, 
+ m5 <- addCircleMarkers(m5, lng = casos$longitud, lat = casos$latitud, weight = 5 * casos$radius, radius = 0, 
                   color= "red", stroke = TRUE, fillOpacity = 0.8)
  
  m5
@@ -54,7 +54,7 @@ str(casos)
  m2 <- leaflet()
  m2 <- addTiles(m2)
  m2 <- setView(m2, lng=-101, lat=24, zoom = 5)
- m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, weight = 5 * casos$radius, radius=5, 
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, weight = 5 * casos$radius, radius = 0, 
                   color= "red", stroke = TRUE, fillOpacity = 0.8, clusterOptions = markerClusterOptions())
  
  m2
