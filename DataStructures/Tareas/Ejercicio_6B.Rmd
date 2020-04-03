@@ -6,12 +6,12 @@ output:
   html_document: default
 ---
 
-# COVID-19 en México 29.03.2020
+# COVID-19 en México 02.04.2020
 
 ## Mapas interactivos con *leaflet* 
 ## (materiales para solucón del ejercicio 6B)
 
-#### Colocar datos sobre los casos de COVID-19 conocidos para el dia 29 de marzo del 2020 en mapa de México (Cada estado esta representado por su capital)
+#### Colocar datos sobre los casos de COVID-19 conocidos para el dia 2 de abril del 2020 en mapa de México (Cada estado esta representado por su capital)
 
 Datos fuente sobre los casos fueron descargados desde los sitios web
 <https://www.unionguanajuato.mx/articulo/2020/03/29/cultura/casos-de-coronavirus-en-mexico-por-estado-estadisticas-covid-19>
@@ -27,6 +27,7 @@ casos <- read.csv("COVID19_Mexico_29032020.csv")
 head(casos)
 names(casos) <- c("estados","latitud","longitud","casos")
 e <- 2.71828182846
+casos$casos <- casos$casos0402
 casos$radius <- log(casos$casos + 1, e)
 str(casos)
 ```
@@ -92,4 +93,45 @@ m1 <- addLegendCustom(m1,
 m1 <- addLayersControl(m1, overlayGroups = c("casos"))
 m1
 
+```
+
+## Versión del mismo mapa con capas en varias fechas
+
+```{r fig.width = 9, fig.height = 6}
+ m2 <- leaflet()
+ m2 <- addTiles(m2)
+ m2 <- setView(m2, lng=-101, lat=24, zoom = 5)
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0329 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 29")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0330 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 30")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0331 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 31")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0401 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "abril 1")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0402 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "abril 2")
+ 
+m2 <- addLegendCustom(m2, 
+                      title = "COVID-19",
+                      group = "leyenda",
+                      position = "bottomleft",
+                      colors = c("red", "red", "red"), 
+                      labels = c("1-20", "20-50", ">50"), 
+                      sizes = c(5 * log(20,e), 
+                                5 * log(50,e), 
+                                5 * log(200,e)))
+
+m2 <- addLayersControl(m2,
+                       baseGroups = c("marzo 29", "marzo 30", 
+                                      "marzo 31", "abril 1", 
+                                      "abril 2"),
+                       overlayGroups = c("leyenda"),
+                       options = layersControlOptions(collapsed = FALSE))
+m2
 ```
