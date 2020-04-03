@@ -22,7 +22,7 @@ y <https://coronavirus.gob.mx/>
 library(leaflet)
 library(sp)
 
-casos <- read.csv("COVID19_Mexico_29032020.csv")
+casos <- read.csv("COVID19_Mexico.csv")
 
 head(casos)
 names(casos) <- c("estados","latitud","longitud","casos")
