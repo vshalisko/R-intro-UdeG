@@ -1,0 +1,163 @@
+---
+title: "Mapa COVID-19 Mexico"
+author: "Viacheslav Shalisko"
+date: "3/4/2020"
+output:
+  html_document: default
+---
+
+# COVID-19 en México 03.03.2020
+
+Datos fuente sobre los casos fueron descargados desde los sitios web
+<https://www.unionguanajuato.mx/articulo/2020/03/29/cultura/casos-de-coronavirus-en-mexico-por-estado-estadisticas-covid-19>
+y <https://coronavirus.gob.mx/>
+
+
+```{r echo=FALSE}
+library(leaflet)
+library(sp)
+
+casos <- read.csv("COVID19_Mexico.csv")
+
+#head(casos)
+names(casos) <- c("estados","latitud","longitud",
+                  "casos0312","casos0313","casos0314",
+                  "casos0315","casos0316","casos0317",
+                  "casos0318","casos0319","casos0320",
+                  "casos0321","casos0322","casos0323",
+                  "casos0324","casos0325","casos0326",
+                  "casos0327","casos0328","casos0329",
+                  "casos0330","casos0331","casos0401",
+                  "casos0402","casos0403")
+
+e <- 2.71828182846
+
+casos$casos <- casos$casos0403
+casos$radius <- log(casos$casos + 1, e)
+ 
+#str(casos)
+```
+
+
+```{r echo=FALSE}
+## Función para generar leyenda con circulos
+ addLegendCustom <- function(map, title, colors, labels, sizes, position, group, opacity = 0.5) {
+  colorAdditions <- paste0(colors, "; border-radius: 50%; width:", sizes, "px; height:", sizes, "px")
+  labelAdditions <- paste0("<div style='display: inline-block; height: ", 
+                           sizes, "px; margin-top: 4px; line-height: ", sizes, "px;'>", 
+                           labels, "</div>")
+  return(addLegend(map, colors = colorAdditions, 
+                   labels = labelAdditions, opacity = opacity, 
+                   position = position, group = group, title = title))
+}
+```
+
+
+## Mapa con dinamica de COVID por fechas
+
+```{r fig.width = 9, fig.height = 8, echo = FALSE}
+
+#library(htmltools)
+
+ m2 <- leaflet()
+ m2 <- addTiles(m2)
+ m2 <- setView(m2, lng=-100, lat=24, zoom = 5)
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0312 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 12")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0313 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 13")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0314 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 14")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0315 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 15")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0316 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 16")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0317 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 17") 
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0318 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 18")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0319 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 19")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0320 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 20")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0321 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 21")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0322 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 22")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0323 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 23")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0324 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 24")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0325 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 25")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0326 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 26")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0327 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 27")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0328 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 28")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0329 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 29")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0330 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 30")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0331 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "marzo 31")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0401 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "abril 1")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0402 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "abril 2")
+ m2 <- addCircleMarkers(m2, lng = casos$longitud, lat = casos$latitud, 
+                        weight = 5 * log(casos$casos0403 + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1, group = "abril 3")
+  
+m2 <- addLegendCustom(m2, 
+                      title = "COVID-19",
+                      group = "leyenda",
+                      position = "bottomleft",
+                      colors = c("red", "red", "red", "red"), 
+                      labels = c("1-5","5-20", "20-50", ">50"), 
+                      sizes = c(5 * log(5,e),
+                                5 * log(20,e), 
+                                5 * log(50,e), 
+                                5 * log(200,e)))
+
+m2 <- addLayersControl(m2,
+                       baseGroups = c("marzo 12", "marzo 13",
+                                      "marzo 14", "marzo 15",
+                                      "marzo 16", "marzo 17",
+                                      "marzo 18", "marzo 19",
+                                      "marzo 20",
+                                      "marzo 21", "marzo 22",
+                                      "marzo 23", "marzo 24",
+                                      "marzo 25", "marzo 26",
+                                      "marzo 27", "marzo 28",
+                                      "marzo 29", "marzo 30", 
+                                      "marzo 31", "abril 1", 
+                                      "abril 2", "abril 3"),
+                       overlayGroups = c("leyenda"),
+                       options = layersControlOptions(collapsed = FALSE))
+m2
+
+```
