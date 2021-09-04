@@ -1,0 +1,81 @@
+---
+title: "Producto 2"
+author: "Viacheslav Shalisko"
+date: "1/9/2021"
+output: html_document
+---
+
+### Resumen
+El **producto 2** es un documento compilado *RMarkdown* que contiene resumen de una estructura de datos sobre el crecimiento de población en los selectos centros urbanos de México en el periodo de 1900 hasta 2020.
+
+### Objetivo de la actividad
+Elaborar y presentar una estructura de datos que contiene la información sobre el número de habitantes en las ciudades mexicanas
+
+### Fuentes de datos
+
+* IIEG (2021). Área Metropolitana de Guadalajara. [AMG.pdf] Documento en la web <https://iieg.gob.mx/ns/wp-content/uploads/2021/02/AMG.pdf>
+* INEGI (2021). Dinámica. Distrito Federal. Página web <http://cuentame.inegi.org.mx/monografias/informacion/df/poblacion/dinamica.aspx?tema=me&e=09>
+* Orozco-Ochoa, A.et al. (2015).  Expansión urbana. Área Metropolitana de Guadalajara. Análisis y prospectiva: 1970-2045. Instituto de Planeación Metropolitana (IMEPLAN), Guadalajara.
+
+## Definición de la estructura
+
+```{r definicion}
+## vectores
+ciudad <- c("Ciudad de México","Guadalajara","Zapopan","Tlaquepaque")
+latitud <- c(19.431611,20.677524,20.721603,20.641918)
+longitud <- c(-99.133775,-103.347796,-103.389900,-103.312918)
+p1900 <- c(0.5,0.101208,0.004346,0.002298)
+p1910 <- c(0.7,0.119468,0.004767,0.002438)
+p1920 <- c(0.9,0.143376,0.005327,0.002592)
+p1930 <- c(1.2,0.179556,0.007603,0.002982)
+p1940 <- c(1.8,0.240721,NA,NA)
+p1950 <- c(3.1,0.380226,0.033187,0.027115)
+p1960 <- c(4.9,0.740394,0.056199,0.054562)
+p1970 <- c(6.9,1.199391,0.155488,0.100945)
+p1980 <- c(8.8,1.626152,0.389081,0.177324)
+p1990 <- c(8.2,1.650205,0.712008,0.339649)
+p2000 <- c(8.6,1.646319,1.001021,0.474178)
+p2010 <- c(8.9,1.495189,1.243756,0.608114)
+p2020 <- c(9.2,1.385629,1.476491,0.687127)
+
+## dataframe (tabla)
+tabla_poblacion <- data.frame(
+  ciudad = ciudad,
+  latitud = latitud,
+  longitud = longitud,
+  p1900 = p1900,
+  p1919 = p1910,
+  p1920 = p1920,
+  p1930 = p1930,
+  p1940 = p1940,
+  p1950 = p1950,
+  p1960 = p1960,
+  p1970 = p1970,
+  p1980 = p1980,
+  p1990 = p1990,
+  p2000 = p2000,
+  p2010 = p2010,
+  p2020 = p2020
+)
+
+```
+
+## Visualización de la estructura
+
+```{r}
+str(tabla_poblacion)
+tabla_poblacion
+
+write.csv(tabla_poblacion, file = "tabla_poblacion.csv", row.names = FALSE)
+```
+
+## Visualización de tabla con formato
+
+```{r}
+nombres_columnas <- c("Ciudad",seq(1900,2020,10))
+knitr::kable(tabla_poblacion[,c(1,4:16)],
+             digits = 1,
+             col.names = nombres_columnas,
+             caption = "Tabla 1. Población en centros urbanos, millones de personas")
+```
+

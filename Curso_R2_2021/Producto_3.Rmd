@@ -1,0 +1,99 @@
+---
+title: "Producto 3"
+author: "Viacheslav Shalisko"
+date: "1/9/2021"
+output: html_document
+---
+
+
+
+### Resumen
+El **producto 3** es un documento compilado *RMarkdown* que contiene los resultados estimación de la tasa de crecimiento de población en selectos centros urbanos de México en el periodo de 1900 hasta 2020.
+
+### Objetivo de la actividad
+Diseñar y aplicar una función para analisis de datos. Utilizar las estructura de control requeridos. 
+
+### Fuentes de datos
+Tabla (u otra estructura de datos) elaborada en el **producto 2** del curso. La estructura puede estar definida en el documento o, de forma alternativa, cargada desde un archivo externo
+
+## Cargar la tabla del producto 2
+
+```{r}
+tabla_poblacion <- read.csv("tabla_poblacion.csv")
+
+str(tabla_poblacion)
+names(tabla_poblacion)[5] <- "p1910"
+str(tabla_poblacion)
+```
+
+
+## Definición de una función para el analisis
+
+```{r}
+tasa_crecimeinto <- function(t1, t2) {
+  # Función para calcular la tasa de crecimiento poblacional en %
+  # t1 - población en el momento de tiempo inicial
+  # t2 - población en el momento de tiempo posterior
+  dt <- t2 - t1
+  if (is.na(t1) | is.na(t2)) {
+    tasa <- NA
+  } else if (t1 == 0 & t2 == 0) {
+    tasa <- 0
+  } else if (t1 == 0 & t2 > 0) {
+    tasa <- NA
+  } else {
+    tasa <- 100 * dt / t1
+  }
+  return(tasa)
+}
+```
+
+## Pruebas de funcionalidad de la función (opcional)
+
+```{r}
+## pruebas
+tasa_crecimeinto(56,58)
+tasa_crecimeinto(39,30)
+tasa_crecimeinto(0,58)
+tasa_crecimeinto(0,0)
+tasa_crecimeinto(NA,350)
+tasa_crecimeinto(56,NA)
+tasa_crecimeinto(56,0)
+```
+
+## Calculo de tasa de crecimiento
+
+```{r}
+#mapply(tasa_crecimeinto, t1 = tabla_poblacion[,5], t2 = tabla_poblacion[,6])
+
+tabla_tasas <- tabla_poblacion[,1:3]
+
+for (i in 4:15) {
+  tasa_decada <- mapply(tasa_crecimeinto, t1 = tabla_poblacion[,i], t2 = tabla_poblacion[,i+1])
+  tabla_tasas <- cbind(tabla_tasas, 
+                       data.frame("tasa" = tasa_decada))
+  names(tabla_tasas)[i] <- colnames(tabla_poblacion)[i+1]
+  
+}
+```
+
+## Tabla con tasas de crecimeinto de poblacion en los selectos centros urbanos de México
+
+```{r paged.print=TRUE}
+tabla_tasas
+```
+
+## Ejemplos de graficos
+
+```{r fig.width=10}
+boxplot(tabla_tasas[,4:15], 
+        main = "Tasas de crecimiento de población por décadas",
+        ylab = "%")
+
+barplot(tabla_tasas[,15], names.arg = tabla_tasas[,1],
+        main = "Crecimiento en 2010-2020",
+        ylab = "%")
+abline(h = 0)
+
+```
+

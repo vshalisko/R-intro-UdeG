@@ -1,0 +1,140 @@
+---
+title: "Practica 2"
+author: "Viacheslav Shalisko"
+date: "27/8/2021"
+output: html_document
+---
+
+```{r}
+library(sp)
+library(raster)
+library(rworldmap)
+library(rworldxtra)
+library(rgdal)
+library(GISTools)
+```
+
+
+# Ejercicio 1
+
+## Realizar lectura de datos raster y su vizualización con mapa estándar
+
+### Lectura de datos fuente y configuración para el ejercicio 1
+
+```{r datos-ejercicio-1}
+mi_raster <- raster("datos/GMTED2010_075_Cotoplaxi.tif")
+mi_raster
+```
+
+### Visualización de mapa del ejercicio 1
+
+```{r mapa-ejercicio-1}
+## variante con mapa de baja resilución, que no requiere modulo rworldxtra
+#world <- getMap(resolution = "low")
+#plot(mi_raster)
+#plot(world, add = TRUE)
+
+world <- getMap(resolution = "high")
+
+plot(world, xlim = c(-86,-65), ylim = c(-10,2), axes = TRUE)
+plot(mi_raster, add = TRUE, legend = FALSE)
+plot(mi_raster, legend.only = TRUE, legend.width = 1, legend.shrink = 0.25,
+     smallplot = c(0.8,0.82, 0.30,0.45))
+plot(world, add = TRUE)
+
+```
+
+# Ejercicio 2
+
+## Realizar lectura y visualización de capa de puntos y poligonos sobre una capa raster
+
+### Lectura de datos en formato ESRI Shapefile
+
+```{r datos-vector-ejercicio-2}
+estaciones_smn <- readOGR("datos/Estaciones_SMN_alt_ok.shp")
+estaciones_smn
+str(estaciones_smn@data)
+
+estados <- readOGR("datos/Estados.shp")
+estados
+str(estados@data)
+```
+
+### Realizar la lectura de datos fuente en formato TIFF
+
+```{r datos-raster-ejercicio-2}
+raster_mde <- raster("datos/MDE_occidente_500m_float_GEO.tif")
+raster_mde
+```
+
+### Realizar reproyección de capa de datos de estados
+
+```{r conversion-datos-ejercicio-2}
+crs_geo <- CRS("+proj=longlat +datum=WGS84 +no_defs")
+estados_geo <- spTransform(estados, crs_geo)
+estados_geo
+```
+
+
+### Visualizar datos fuente del ejercicio 2
+
+```{r mapa-ejercicio-2, fig.width = 8, fig.height = 9}
+plot(raster_mde, main = "Visualización de datos fuente")
+plot(estados_geo, add = TRUE)
+plot(estaciones_smn, pch = 21, 
+     col = "black", bg = "lightgray", add = TRUE)
+```
+
+
+
+# Ejercicio 3
+
+## Realizar lectura y visualización de tres capas de datos vectoriales
+* Estados.shp - estados de México
+* Municipios_select.shp - municipios de entidades federativas de México selectas
+* Mexico_Ciudades.shp - ciudades principales de México
+
+## Elaborar un mapa con coordenadas LCC ("Lambert Conformal Conic") en RMarkdown que continene las tres capas sobrepuestas
+
+## Opcionalmente colocar letreros de nombres de ciudades
+
+### Lectura de datos fuente y configuración para el ejercicio 3
+
+```{r datos-ejercicio-3}
+mis_municipios <- readOGR("datos/Municipios_select.shp")
+mis_municipios
+mis_estados <- readOGR("datos/Estados.shp")
+mis_estados
+mis_ciudades <- readOGR("datos/Mexico_Ciudades.shp", encoding = "UTF-8")
+mis_ciudades
+
+crs_lcc <- CRS("+proj=lcc +lat_0=12 +lon_0=-102 +lat_1=17.5 +lat_2=29.5 +x_0=2500000 +y_0=0 +ellps=GRS80 +units=m +no_defs")
+
+mis_ciudades_lcc <- spTransform(mis_ciudades, crs_lcc)
+mis_ciudades_lcc
+
+str(mis_ciudades_lcc)
+```
+
+### Visualización de mapa del ejercicio 3
+
+```{r mapa-ejercicio-3, fig.width = 10, fig.height = 8}
+par(cex = 0.7)
+plot(mis_municipios, axes = TRUE,
+     border = "gray",
+     xlim = c(2000000,3000000), 
+     main = "Municipios en cinco estados de México")
+par(cex = 1)
+plot(mis_estados, border = "red", add = TRUE)
+plot(mis_ciudades_lcc, pch = 19, cex = 1.2, add = TRUE)
+text(
+  x = mis_ciudades_lcc@coords[,1],
+  y = mis_ciudades_lcc@coords[,2],
+  labels = as.character(mis_ciudades_lcc@data$CIUDAD),
+  pos = 3, offset = 0.4, col = "black", cex = 0.6)
+map.scale(xc = 2200000, yc = 590000, len = 200000, 
+          ndivs = 4, units = "km", subdiv = 50)
+north.arrow(xb = 2050000, yb = 590000, len = 15000, lab = "norte", cex.lab = 1)
+```
+
+

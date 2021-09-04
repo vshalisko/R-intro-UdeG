@@ -1,0 +1,31 @@
+---
+title: "Producto 1"
+author: "Viacheslav Shalisko"
+date: "25/8/2021"
+output: html_document
+---
+
+### Resumen
+El producto es un documento compilado *RMarkdown* que contiene los elementos de texto con formato y los resultados de ejecución de dos funciones *R* que permiten conocer los parámetros de la sesión de trabajo y la lista del paquetes *R* instalados en sistema del usuario.
+
+### Objetivo de la actividad
+Elaborar una plantalla *RMarkdown* para entrega de los productos en marco del curso **Lenguaje R para investigación en Geografía**
+
+### Información sobre la sesión
+
+```{r}
+sessionInfo()
+```
+
+### Lista de paquetes instalados en sistema
+
+```{r}
+my_packages <- installed.packages()
+
+knitr::kable(my_packages[,c("Version","Depends")],
+ caption = "Tabla 1")
+
+
+
+```
+
