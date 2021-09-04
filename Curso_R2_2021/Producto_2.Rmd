@@ -44,7 +44,7 @@ tabla_poblacion <- data.frame(
   latitud = latitud,
   longitud = longitud,
   p1900 = p1900,
-  p1919 = p1910,
+  p1910 = p1910,
   p1920 = p1920,
   p1930 = p1930,
   p1940 = p1940,
