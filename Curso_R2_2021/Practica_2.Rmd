@@ -5,13 +5,15 @@ date: "27/8/2021"
 output: html_document
 ---
 
+## Practica 2 del curso *Taller temático II*
+
 ```{r}
-library(sp)
-library(raster)
-library(rworldmap)
-library(rworldxtra)
-library(rgdal)
-library(GISTools)
+library(sp)           # trabajo con objetos geoespaciales
+library(raster)       # trabajo con datos raster
+library(rworldmap)    # requerido para acceder a mapa base (contornos de países)
+library(rworldxtra)   # requerido para acceder a contornos de países de alta resolución
+library(rgdal)        # acceso a proyecciones y conversión de formatos en modulos sp y raster
+library(GISTools)     # requerido para coolocar escala y flecha norte en un mapa
 ```
 
 

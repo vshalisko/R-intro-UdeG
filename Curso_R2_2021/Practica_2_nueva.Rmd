@@ -1,0 +1,77 @@
+---
+title: "Practica 2"
+author: "Viacheslav Shalisko"
+date: "4/9/2021"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+## Practica 2 del curso *Taller temático II* (versión de clase)
+
+# Ejercicio 1
+
+## Realizar lectura de datos raster y su vizualización con mapa estandar
+
+```{r}
+library(sp)
+library(raster)
+library(rworldmap)
+library(rgdal)
+```
+
+
+```{r cache = TRUE}
+mi_raster <- raster("datos/GMTED2010_075_Cotoplaxi.tif")
+mi_raster
+
+world <- getMap(resolution = "low")
+
+plot(world, xlim = c(-85,-75), ylim = c(-10,2))
+plot(mi_raster, add = TRUE)
+plot(world, add = TRUE)
+```
+
+# Ejercicio 2
+
+## Realizar lectura y visualización de capa de puntos y poligonos sobre una capa raster
+
+```{r fig.width = 8, fig.height = 9}
+estaciones_smn <- readOGR("datos/Estaciones_SMN_alt_ok.shp")
+estaciones_smn
+head(estaciones_smn@data)
+str(estaciones_smn@data)
+
+estados <- readOGR("datos/Estados.shp")
+estados
+head(estados@data)
+str(estados@data)
+
+crs_geo <- CRS("+proj=longlat +datum=WGS84 +no_defs")
+estados_geo <- spTransform(estados, crs_geo)
+estados_geo
+
+raster_mde <- raster("datos/MDE_occidente_500m_float_GEO.tif")
+raster_mde
+
+plot(raster_mde)
+plot(estados_geo, add = TRUE, border = "darkgray")
+plot(estaciones_smn, add = TRUE, pch = 21, col = "black", bg = "lightgray")
+```
+
+# Ejercicio 3
+
+## Realizar lectura y visualización de tres capas de datos vectoriales
+* Estados.shp - estados de México
+* Municipios_select.shp - municipios de entidades federativas de México selectas
+* Mexico_Ciudades.shp - ciudades principales de México
+
+## Elaborar un mapa con coordenadas LCC ("Lambert Conformal Conic") en RMarkdown que continene las tres capas sobrepuestas
+
+## Opcionalmente colocar letreros de nombres de ciudades
+
+```{r}
+
+```
+
+
