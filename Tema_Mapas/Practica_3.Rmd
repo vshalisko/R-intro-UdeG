@@ -1,0 +1,202 @@
+---
+title: "Practica 3"
+author: "Viacheslav Shalisko"
+date: "3/9/2021"
+output: html_document
+---
+
+## Objetivo: Realizar un analisis de datos sobre temperatura dunte un mes del año en México y constuir un modelo de relación entre temperatura y variable de elevación sobre nivel del mar. Aplicar el modelo para contruir una predicción de patron de temperaturas.
+
+### 1) Cargar bibliotecas requeridas: sp, raster, rgdal, foreign
+
+```{r}
+library(sp)
+library(raster)
+library(rgdal)
+library(foreign)
+
+sessionInfo()
+```
+
+### 2) Realizar la lectura de datos fuente en formato DBF
+
+```{r}
+tabla_temp <- read.dbf("Practica_3_insumos/Temp.dbf")
+
+head(tabla_temp)
+```
+
+### 3) Realizar la lectura de datos fuente en formato SHP
+
+```{r}
+estaciones_smn <- readOGR("Practica_3_insumos/Estaciones_SMN_alt_ok.shp")
+
+estaciones_smn
+```
+
+### 4) Realizar la lectura de datos fuente en formato TIFF
+
+```{r}
+raster_mde <- raster("Practica_3_insumos/MDE_occidente_500m_float_GEO.tif")
+
+raster_mde
+```
+
+### 5) Verificar contenido de datos fuente
+
+```{r}
+str(tabla_temp)
+tabla_temp$NUMERO_DE_ <- as.character(tabla_temp$NUMERO_DE_)
+str(tabla_temp)
+str(estaciones_smn@data)
+```
+
+### 6) Visualizar datos fuente en forma geoespacial
+
+```{r fig.width = 8, fig.height = 9}
+plot(raster_mde, main = "Visualización de datos fuente")
+plot(estaciones_smn, pch = 21, 
+     col = "black", bg = "lightgray", add = TRUE)
+```
+
+### 7) Realizar JOIN de temperaturas en tabla DBF y puntos de observación SHP
+
+```{r}
+smn_temp <- merge(x = estaciones_smn@data, y = tabla_temp,
+                  by = "NUMERO_DE_")
+
+head(smn_temp)
+dim(smn_temp)
+
+summary(smn_temp$TMEDIA)
+```
+
+### 8) Preparar variables para el modelo lineal
+
+```{r}
+selector_valores <- (smn_temp$TMEDIA != 0) & (smn_temp$Z_FIN > 0)
+
+summary(selector_valores)
+
+temperatura <- smn_temp[selector_valores,"TSEP"]
+
+summary(temperatura)
+length(temperatura)
+
+elevacion <- smn_temp[selector_valores,"Z_FIN"]
+elevacion_2 <- elevacion ^ 2
+
+summary(elevacion)
+length(elevacion)
+```
+
+### 9) Construir un modelo lineal (LM)
+
+### 10) Revisar propiedades del modelo construido
+
+```{r}
+modelo_lm <- lm(temperatura ~ elevacion + elevacion_2)
+
+summary(modelo_lm)
+
+coef(modelo_lm)
+confint(modelo_lm)
+```
+
+### 11) Realizar visualización del modelo
+
+```{r  fig.width = 8, fig.height = 6}
+plot(x = elevacion, y = temperatura, col = "gray",
+     main = "Modelo de relación entre tempertura y elevación",
+     ylab = "T de septiembre, °C", xlab = "Elevacion sobre nivel del mar, m")
+
+elevacion_simulada <- seq(0, 4300, 10)
+temperatura_simulada <- predict(modelo_lm, data.frame(elevacion = elevacion_simulada, 
+                                                      elevacion_2 = elevacion_simulada^2),
+                                interval = c("confidence"))
+
+str(temperatura_simulada)
+
+lines(x = elevacion_simulada, y = temperatura_simulada[,"fit"], 
+      col = "red", lty = 1, lwd = 2)
+lines(x = elevacion_simulada, y = temperatura_simulada[,"upr"], 
+      col = "red", lty = 2, lwd = 1)
+lines(x = elevacion_simulada, y = temperatura_simulada[,"lwr"], 
+      col = "red", lty = 2, lwd = 1)
+
+
+```
+
+### 12) Realizar predicción de las temperaturas en formato Raster
+
+```{r}
+raster_mde2 <- raster_mde ^2
+raster_mde_stack <- stack(raster_mde, raster_mde2)
+names(raster_mde_stack) <- c("elevacion","elevacion_2")
+raster_mde_stack
+
+temperatura_simulada_raster <- predict(raster_mde_stack, modelo_lm)
+temperatura_simulada_raster
+```
+
+### 13) Visualizar y guardar el la superficie resultante
+
+```{r fig.width = 8, fig.height = 9}
+plot(temperatura_simulada_raster, 
+     col = cm.colors(10),
+     main = "Visualización de predicción de temperatura")
+plot(estaciones_smn, pch = 21, 
+     col = "black", bg = "lightgray", add = TRUE)
+
+writeRaster(temperatura_simulada_raster, filename = "temperatura_septiembre.tif",
+            format = "GTiff", datatype = "FLT4S", overwrite = TRUE)
+```
+
+### 14) Visualización de raster con relieve sombreado
+
+```{r fig.width = 8, fig.height = 9}
+## generar superficie de relieve sombreado
+slope <- terrain(raster_mde, 'slope')
+aspect <- terrain(raster_mde, 'aspect')
+ethHS <- hillShade(slope=slope, aspect=aspect,
+                       angle=20, direction=30)
+m <- c(-Inf, 0, 1,  1, Inf, NA)
+rclmat <- matrix(m, ncol = 3, byrow = TRUE)
+ocean <- reclassify(raster_mde, rclmat)
+
+
+## generar grafica de puntos para definición de área de visualización
+plot(estaciones_smn, pch = 21,
+     col = "black", bg = "lightgray",
+     xlim = c(-107,-101), ylim = c(17,23),
+     main = "Visualización de predicción de temperatura",
+     axes = TRUE)
+
+## agregar capa de relieve sombreado
+mi_plot <- plot(ethHS, add = TRUE,
+     col = hcl.colors(n = 20, pal = "Grays"), 
+     legend = FALSE)
+
+## agregar predicción de temperatura en modo de capa semi-transpatente
+plot(temperatura_simulada_raster, add = TRUE, 
+     legend = FALSE,
+     col = rev(hcl.colors(n = 20, pal = "RdYlBu", alpha = 0.5)))
+
+## agregar oceano 
+plot(ocean, add = TRUE, 
+     legend = FALSE, 
+     col = hcl.colors(n = 2, pal = "Blues 2"))
+
+## colocar puntos por encima
+plot(estaciones_smn, pch = 21, 
+     col = "black", bg = "lightgray", add = TRUE)
+
+## agregar leyenda para predicción de temperatura
+plot(temperatura_simulada_raster, add = TRUE, 
+     legend.only = TRUE, horizontal = TRUE,
+     smallplot= c(0.15, 0.5, 0.17, 0.19),
+     legend.args = list(text='Temperatura, °C'),
+     col = rev(hcl.colors(n = 20, pal = "RdYlBu", alpha = 0.5)))
+
+```
+
