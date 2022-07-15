@@ -182,15 +182,10 @@ pre code {
 <ol style="list-style-type: decimal">
 <li>Cargar las bibliotecas</li>
 </ol>
-<pre class="r"><code>library(tidyr)
-library(lattice)
-library(latticeExtra)
-library(lubridate)</code></pre>
-<pre><code>## 
-## Attaching package: &#39;lubridate&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
-## 
-##     date, intersect, setdiff, union</code></pre>
+<pre class="r"><code>library(tidyr)           # para conversión entre formato ancho y largo
+library(lattice)         # para grafica Método 2
+library(latticeExtra)    # para grafica Método 2
+#library(lubridate)      # no se usa, pero puede ser necesaria en caso que queremos trabajar con fechas de forma mas precisa</code></pre>
 <ol start="2" style="list-style-type: decimal">
 <li>Definir variables globales</li>
 </ol>
@@ -214,12 +209,14 @@ horas</code></pre>
 </ol>
 <pre class="r"><code>datos &lt;- read.csv(&quot;LDO_TMP_1996_2020.csv&quot;)
 
-## renombrar columan AÑO para evitar us de simbolos especiales
+## renombrar columna AÑO para evitar el uso de simbolos especiales
 names(datos)[names(datos) == &quot;AÑO&quot;] &lt;- &quot;AN&quot;
 
+## convertir a factores
 datos$PARAMETRO &lt;- as.factor(datos$PARAMETRO)
 datos$CLAVE &lt;- as.factor(datos$CLAVE)
 
+## convertir a numéricos
 for (i in 1:length(horas)) {
   datos[,horas[i]] &lt;- as.numeric(datos[,horas[i]])  
 }</code></pre>
@@ -273,7 +270,8 @@ for (i in 1:length(horas)) {
 <pre class="r"><code>## representación de meses como fracción del año (cada mes suma 1/12, excepto enero)
 datos$AN_MES &lt;- (datos$AN + (datos$MES - 1) / 12)
 
-unique(datos$AN_MES)</code></pre>
+## revisar la secuencia de años y meses fraccionales
+sort(unique(datos$AN_MES))</code></pre>
 <pre><code>##   [1] 1996.000 1996.083 1996.167 1996.250 1996.333 1996.417 1996.500 1996.583
 ##   [9] 1996.667 1996.750 1996.833 1996.917 1997.000 1997.083 1997.167 1997.250
 ##  [17] 1997.333 1997.417 1997.500 1997.583 1997.667 1997.750 1997.833 1997.917
@@ -287,31 +285,31 @@ unique(datos$AN_MES)</code></pre>
 ##  [81] 2002.667 2002.750 2002.833 2002.917 2003.000 2003.083 2003.167 2003.250
 ##  [89] 2003.333 2003.417 2003.500 2003.583 2003.667 2003.750 2003.833 2003.917
 ##  [97] 2004.000 2004.083 2004.167 2004.250 2004.333 2004.417 2004.500 2004.583
-## [105] 2004.667 2004.750 2004.833 2004.917       NA 2005.000 2005.083 2005.167
-## [113] 2005.250 2005.333 2005.417 2005.500 2005.583 2005.667 2005.750 2005.833
-## [121] 2005.917 2006.000 2006.083 2006.167 2006.250 2006.333 2006.417 2006.500
-## [129] 2006.583 2006.667 2006.750 2006.833 2006.917 2007.000 2007.083 2007.167
-## [137] 2007.250 2007.333 2007.417 2007.500 2007.583 2007.667 2007.750 2007.833
-## [145] 2007.917 2008.000 2008.083 2008.167 2008.250 2008.333 2008.417 2008.500
-## [153] 2008.583 2008.667 2008.750 2008.833 2008.917 2009.000 2009.083 2009.167
-## [161] 2009.250 2009.333 2009.417 2009.500 2009.583 2009.667 2009.750 2009.833
-## [169] 2009.917 2010.000 2010.083 2010.167 2010.250 2010.333 2010.417 2010.500
-## [177] 2010.583 2010.667 2010.750 2010.833 2010.917 2011.000 2011.083 2011.167
-## [185] 2011.250 2011.333 2011.417 2011.500 2011.583 2011.667 2011.750 2011.833
-## [193] 2011.917 2012.000 2012.083 2012.167 2012.250 2012.333 2012.417 2012.500
-## [201] 2012.583 2012.667 2012.750 2012.833 2012.917 2013.000 2013.083 2013.167
-## [209] 2013.250 2013.333 2013.417 2013.500 2013.583 2013.667 2013.750 2013.833
-## [217] 2013.917 2014.000 2014.083 2014.167 2014.250 2014.333 2014.417 2014.500
-## [225] 2014.583 2014.667 2014.750 2014.833 2014.917 2015.000 2015.083 2015.167
-## [233] 2015.250 2015.333 2015.417 2015.500 2015.583 2015.667 2015.750 2015.833
-## [241] 2015.917 2016.000 2016.083 2016.167 2016.250 2016.333 2016.417 2016.500
-## [249] 2016.583 2016.667 2016.750 2016.833 2016.917 2017.000 2017.083 2017.167
-## [257] 2017.250 2017.333 2017.417 2017.500 2017.583 2017.667 2017.750 2017.833
-## [265] 2017.917 2018.000 2018.083 2018.167 2018.250 2018.333 2018.417 2018.500
-## [273] 2018.583 2018.667 2018.750 2018.833 2018.917 2019.000 2019.083 2019.167
-## [281] 2019.250 2019.333 2019.417 2019.500 2019.583 2019.667 2019.750 2019.833
-## [289] 2019.917 2020.000 2020.083 2020.167 2020.250 2020.333 2020.417 2020.500
-## [297] 2020.583 2020.667 2020.750 2020.833 2020.917</code></pre>
+## [105] 2004.667 2004.750 2004.833 2004.917 2005.000 2005.083 2005.167 2005.250
+## [113] 2005.333 2005.417 2005.500 2005.583 2005.667 2005.750 2005.833 2005.917
+## [121] 2006.000 2006.083 2006.167 2006.250 2006.333 2006.417 2006.500 2006.583
+## [129] 2006.667 2006.750 2006.833 2006.917 2007.000 2007.083 2007.167 2007.250
+## [137] 2007.333 2007.417 2007.500 2007.583 2007.667 2007.750 2007.833 2007.917
+## [145] 2008.000 2008.083 2008.167 2008.250 2008.333 2008.417 2008.500 2008.583
+## [153] 2008.667 2008.750 2008.833 2008.917 2009.000 2009.083 2009.167 2009.250
+## [161] 2009.333 2009.417 2009.500 2009.583 2009.667 2009.750 2009.833 2009.917
+## [169] 2010.000 2010.083 2010.167 2010.250 2010.333 2010.417 2010.500 2010.583
+## [177] 2010.667 2010.750 2010.833 2010.917 2011.000 2011.083 2011.167 2011.250
+## [185] 2011.333 2011.417 2011.500 2011.583 2011.667 2011.750 2011.833 2011.917
+## [193] 2012.000 2012.083 2012.167 2012.250 2012.333 2012.417 2012.500 2012.583
+## [201] 2012.667 2012.750 2012.833 2012.917 2013.000 2013.083 2013.167 2013.250
+## [209] 2013.333 2013.417 2013.500 2013.583 2013.667 2013.750 2013.833 2013.917
+## [217] 2014.000 2014.083 2014.167 2014.250 2014.333 2014.417 2014.500 2014.583
+## [225] 2014.667 2014.750 2014.833 2014.917 2015.000 2015.083 2015.167 2015.250
+## [233] 2015.333 2015.417 2015.500 2015.583 2015.667 2015.750 2015.833 2015.917
+## [241] 2016.000 2016.083 2016.167 2016.250 2016.333 2016.417 2016.500 2016.583
+## [249] 2016.667 2016.750 2016.833 2016.917 2017.000 2017.083 2017.167 2017.250
+## [257] 2017.333 2017.417 2017.500 2017.583 2017.667 2017.750 2017.833 2017.917
+## [265] 2018.000 2018.083 2018.167 2018.250 2018.333 2018.417 2018.500 2018.583
+## [273] 2018.667 2018.750 2018.833 2018.917 2019.000 2019.083 2019.167 2019.250
+## [281] 2019.333 2019.417 2019.500 2019.583 2019.667 2019.750 2019.833 2019.917
+## [289] 2020.000 2020.083 2020.167 2020.250 2020.333 2020.417 2020.500 2020.583
+## [297] 2020.667 2020.750 2020.833 2020.917</code></pre>
 <pre class="r"><code>str(datos)</code></pre>
 <pre><code>## &#39;data.frame&#39;:    9132 obs. of  31 variables:
 ##  $ FECHA    : chr  &quot;01/01/1996&quot; &quot;02/01/1996&quot; &quot;03/01/1996&quot; &quot;04/01/1996&quot; ...
@@ -499,6 +497,7 @@ dibujar1 &lt;- function (dw) {
             max(dw$AN_MES, na.rm = TRUE), 
             length.out = nrow(dw[,horas]))
   
+  ## obtener números de meses y detectar inicios de año (para etiquetas del eje x)
   numero_mes &lt;- round(12 * (df.x - floor(df.x)) + 1)
   an_inicio_selector &lt;- (df.x - floor(df.x)) == 0
   #print(meses[numero_mes])
@@ -507,14 +506,16 @@ dibujar1 &lt;- function (dw) {
   df.y &lt;- seq(0, 24, length.out = ncol(dw[,horas]))
   df.z &lt;- as.matrix(dw[,horas])
 
-  ## calcular rango de colores a partir de datos
+  ## calcular rango de valores a partir de datos
   rango_z &lt;- c(min(df.z, na.rm = TRUE),max(df.z, na.rm = TRUE))
   ## opcionalmente se puede utilizar un rango fijo
   # rango_z &lt;- c(5,45)
   
+  ## establecer clasificación y gama de colores
   divisiones &lt;- pretty(rango_z, col.divs)
   colores &lt;- col.l(length(divisiones))
 
+  ## dibujar grafica de contornos
   filled.contour(df.x, df.y, df.z,
                 levels = divisiones,
                 #nlevels = col.divs,
@@ -551,7 +552,7 @@ dibujar2 &lt;- function (dl) {
   ## función para visualizar datos
   ## dl - dataframe en formato largo
   
-  ## calcular rango de colores a partir de datos
+  ## calcular rango de valores a partir de datos
   rango_z &lt;- c(min(dl$T, na.rm = TRUE),max(dl$T, na.rm = TRUE))
   ## opcionalmente se puede utilizar un rango fijo
   # rango_z &lt;- c(5,45)  
