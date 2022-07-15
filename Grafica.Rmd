@@ -1,0 +1,179 @@
+---
+title: "Graficas para Leticia Loza"
+author: "Viacheslav Shalisko"
+date: "14/7/2022"
+output: html_document
+---
+
+# Propósito: visualizar los promedios horario-mensuales de variable ambiental
+## Fuente de datos: archivo CSV con registros diarios de variable ambiental por hora (columnas HORA00 - HORA23)
+
+1. Cargar las bibliotecas
+
+```{r}
+library(tidyr)
+library(lattice)
+library(latticeExtra)
+library(lubridate)
+```
+
+2. Definir variables globales
+
+```{r}
+## variables globales (se usan in interior de funciones sin un paso a travez de parámetros de la función)
+## colores
+col.l <- colorRampPalette(c('blue', 'cyan', 'green', 'yellow', 'orange', 'red'))
+col.divs <- 20
+
+## códigos de mesees
+meses <- c("E","F","M","A","M","J","J","A","S","O","N","D")
+
+## nombres de las columnas de horas en la tabla
+horas <- sprintf("HORA%02d", seq(0,23,1))
+horas
+
+nombre_variable = "T (°C)"
+
+```
+
+3. Lectura de datos y su preparación
+
+```{r}
+datos <- read.csv("LDO_TMP_1996_2020.csv")
+
+## renombrar columan AÑO para evitar us de simbolos especiales
+names(datos)[names(datos) == "AÑO"] <- "AN"
+
+datos$PARAMETRO <- as.factor(datos$PARAMETRO)
+datos$CLAVE <- as.factor(datos$CLAVE)
+
+for (i in 1:length(horas)) {
+  datos[,horas[i]] <- as.numeric(datos[,horas[i]])  
+}
+
+## representación de meses como fracción del año (cada mes suma 1/12, excepto enero)
+datos$AN_MES <- (datos$AN + (datos$MES - 1) / 12)
+
+unique(datos$AN_MES)
+
+str(datos)
+head(datos)
+tail(datos)
+```
+
+3) Calcuar subtotales por mes-hora
+
+```{r}
+## formato ancho
+datos_wide <- aggregate(x = datos[horas], by = list(datos$AN_MES), FUN = "mean", na.action = na.omit)
+names(datos_wide)[names(datos_wide) == "Group.1"] <- "AN_MES"
+head(datos_wide)
+str(datos_wide)
+
+
+## formato largo
+datos_long <- gather(datos_wide, key = "Hora", "T", horas, factor_key=TRUE)
+names(datos_long)[names(datos_long) == "Group.1"] <- "AN_MES"
+datos_long$Hora_num <- as.integer(factor(datos_long$Hora, levels = horas, ordered = TRUE))
+head(datos_long)
+str(datos_long)
+
+```
+
+
+# Visualización de datos
+#### En las zonas sin cobertura de datos apareceré el espacio en blanco
+
+## Método 1: función _filled.contour_
+#### Tres ejemplos: 
+1) datos completos
+2) recorte de 2002 hasts 2006
+3) recorte de 2006 hasts 2010
+
+
+```{r fig.width = 12, fig.height = 8}
+datos_wide1 <- datos_wide[datos_wide$AN_MES >= 2002 & datos_wide$AN_MES < 2006,]
+datos_wide2 <- datos_wide[datos_wide$AN_MES >= 2006 & datos_wide$AN_MES < 2010,]
+
+dibujar1 <- function (dw) {
+  ## función para visualizar datos
+  ## dw - dataframe en formato ancho
+  df.x <- seq(min(dw$AN_MES, na.rm = TRUE), 
+            max(dw$AN_MES, na.rm = TRUE), 
+            length.out = nrow(dw[,horas]))
+  
+  numero_mes <- round(12 * (df.x - floor(df.x)) + 1)
+  an_inicio_selector <- (df.x - floor(df.x)) == 0
+  #print(meses[numero_mes])
+  #print(an_inicio_selector)
+  
+  df.y <- seq(0, 24, length.out = ncol(dw[,horas]))
+  df.z <- as.matrix(dw[,horas])
+
+  ## calcular rango de colores a partir de datos
+  rango_z <- c(min(df.z, na.rm = TRUE),max(df.z, na.rm = TRUE))
+  ## opcionalmente se puede utilizar un rango fijo
+  # rango_z <- c(5,45)
+  
+  divisiones <- pretty(rango_z, col.divs)
+  colores <- col.l(length(divisiones))
+
+  filled.contour(df.x, df.y, df.z,
+                levels = divisiones,
+                #nlevels = col.divs,
+                col = colores,
+                key.title = title(main = nombre_variable),
+                plot.axes = {
+                  axis(1, pos = -1, lwd = 0, at = df.x[an_inicio_selector])
+                  axis(1, at = df.x, labels = meses[numero_mes], cex.axis = 0.7)
+                  axis(2, at = 0:24, cex.axis = 0.7)
+                  contour(df.x, df.y, df.z, add = T)},
+                ylab = "Hora", xlab = "Meses y años",
+                main = "Primedios horario - mensuales"
+                )
+  
+}
+
+dibujar1(datos_wide)
+dibujar1(datos_wide1)
+dibujar1(datos_wide2)
+
+```
+
+
+
+## Método 2: funcion _levelplot_
+#### Los mismos tres ejemplos que antes
+
+
+```{r fig.width = 12, fig.height = 8}
+
+
+datos_long1 <- datos_long[datos_long$AN_MES >= 2002 & datos_long$AN_MES < 2006,]
+datos_long2 <- datos_long[datos_long$AN_MES >= 2006 & datos_long$AN_MES < 2010,]
+
+
+dibujar2 <- function (dl) {
+  ## función para visualizar datos
+  ## dl - dataframe en formato largo
+  
+  ## calcular rango de colores a partir de datos
+  rango_z <- c(min(dl$T, na.rm = TRUE),max(dl$T, na.rm = TRUE))
+  ## opcionalmente se puede utilizar un rango fijo
+  # rango_z <- c(5,45)  
+  
+  levelplot(T ~  AN_MES * Hora_num, data = dl,
+          cuts = 100, col.regions = col.l,
+          region = TRUE, contour = TRUE, 
+          at = seq(from = rango_z[1], to = rango_z[2], length = col.divs),
+          ylab = "Hora", xlab = "Años",
+          main = "Primedios horario - mensuales")
+  
+}
+
+dibujar2(datos_long)
+dibujar2(datos_long1)
+dibujar2(datos_long2)
+
+```
+
