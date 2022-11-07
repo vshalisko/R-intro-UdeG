@@ -1,0 +1,144 @@
+---
+title: "Caso 7 Analisis de correlación"
+author: "Viacheslav Shalisko"
+date: "2022-10-08"
+output: html_document
+---
+
+
+```{r}
+library(sp)
+library(rgdal)
+library(RColorBrewer)
+library(vcd)
+library(foreign)
+```
+
+Leer datos fuente
+
+```{r}
+manzanas_2010 <- readOGR("../Insumos para ejercicio Lafayette/2_Polígono_manzanas_2010.shp")
+#str(manzanas_2010)
+
+manzanas_2020 <- readOGR("../Insumos para ejercicio Lafayette/2_Polígono_manzanas_2020.shp")
+#str(manzanas_2020)
+
+educacion_2020 <- read.dbf("../Insumos para ejercicio Lafayette/Tablas_2020/cpv2020_manzana_educacion.dbf")
+educacion_2020$CVEGEO <- as.character(educacion_2020$CVEGEO)
+
+str(educacion_2020)
+```
+
+Realizar Join
+
+```{r}
+manzanas_com <- merge(x = manzanas_2020,
+                             y = manzanas_2010@data,
+                             by = "CVEGEO")
+manzanas_com <- merge(x = manzanas_com,
+                      y = educacion_2020,
+                      by = "CVEGEO", all.y = FALSE)
+
+str(manzanas_com)
+
+
+```
+
+Calcular variables de interés
+
+```{r}
+manzanas_com@data$D_POBTOT <- as.numeric(manzanas_com@data$POBTOT) - manzanas_com@data$POB1
+
+#D_POBTOT
+hist(manzanas_com@data$D_POBTOT)
+
+par(cex = 0.8)
+
+x <- as.numeric(manzanas_com@data[,"D_POBTOT"])
+  cut.vals <- pretty(x)
+  x.cut <- cut(x, cut.vals)
+  cut.levels <- levels(x.cut)
+  cut.band <- match(x.cut,cut.levels)
+  colors <- brewer.pal(length(cut.levels),"Reds")
+plot(manzanas_com, col = colors[cut.band])
+
+legend("topleft", cut.levels, 
+         fill = colors, border = "black", bty = "n",
+         title = "Aumento de población total")
+
+
+
+```
+
+Correlaciones
+
+```{r}
+cor(x = manzanas_com@data$D_POBTOT, 
+    y = manzanas_com@data$POB1,
+    method = "pearson")
+cor.test(x = manzanas_com@data$D_POBTOT, 
+    y = manzanas_com@data$POB1,
+    method = "pearson", conf.level = 0.95)
+
+
+cor(x = manzanas_com@data$D_POBTOT, 
+    y = manzanas_com@data$POB1,
+    method = "kendall")
+cor.test(x = manzanas_com@data$D_POBTOT, 
+    y = manzanas_com@data$POB1,
+    method = "kendall", conf.level = 0.95)
+
+cor(x = manzanas_com@data$D_POBTOT, 
+    y = manzanas_com@data$POB1,
+    method = "spearman")
+cor.test(x = manzanas_com@data$D_POBTOT, 
+    y = manzanas_com@data$POB1,
+    method = "spearman", conf.level = 0.95)
+
+plot(x = manzanas_com@data$D_POBTOT, 
+    y = manzanas_com@data$POB1,
+    xlim = c(-100,150))
+
+```
+
+```{r}
+summary(manzanas_com@data$POB1)
+summary(manzanas_com@data$D_POBTOT)
+
+manzanas_com@data$POB1_categorica <- cut(manzanas_com@data$POB1, breaks = c(0,10,50,150), include.lowest = TRUE)
+
+manzanas_com@data$D_POBTOT_categorica <- cut(manzanas_com@data$D_POBTOT, breaks = c(-100,-5,5,1500), include.lowest = TRUE)
+
+tabla_asoc <- table(manzanas_com@data$POB1_categorica,
+      manzanas_com@data$D_POBTOT_categorica)
+
+tabla_asoc
+
+assocplot(tabla_asoc, col = c("black", "red"), space = 0.3)
+assocstats(tabla_asoc)
+
+assoc(tabla_asoc,
+      residuals_type = "Pearson")
+```
+
+
+```{r}
+manzanas_seleccion <- manzanas_com@data[,c("D_POBTOT","POB1","POBTOT","POBMAS","POBFEM")]
+str(manzanas_seleccion)
+
+manzanas_seleccion$POBTOT <- as.numeric(manzanas_seleccion$POBTOT)
+manzanas_seleccion$POBFEM <- as.numeric(manzanas_seleccion$POBFEM)
+manzanas_seleccion$POBMAS <- as.numeric(manzanas_seleccion$POBMAS)
+str(manzanas_seleccion)
+
+cor(manzanas_seleccion, method = "spearman", use = "complete.obs")
+
+
+```
+
+```{r}
+cor.test(x = manzanas_com@data$D_POBTOT, 
+    y = manzanas_com@data$EDU25_R,
+    method = "spearman", conf.level = 0.95)
+```
+
