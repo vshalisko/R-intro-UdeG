@@ -1,0 +1,199 @@
+---
+title: "Ejercicio 4"
+author: "Viacheslav Shalisko"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(sf)
+sessionInfo()
+```
+
+
+### Resumen
+El documento contiene datos sobre proporión de población urbana en municipios de Jalisco derivados del Censo de población y vivienda de INEGI del 2020
+
+### Objetivo de la actividad
+Demostrar el proceso de tratamiento estadistico y visualización de datos geográficos en R
+
+### Fuentes de datos
+
+* [1] INEGI (2020). Censo Población y Vivienda 2020. Microdatos. Jalisco. <https://www.inegi.org.mx/programas/ccpv/2020/default.html#Microdatos>
+* [2] IIEGJ (2018). Mapa general de Jalisco 2012 modificado por Decreto 26837. <https://datos.jalisco.gob.mx/dataset/mapa-general-de-jalisco-limite-municipal-2012>
+
+## Lectura y acondicionamiento de los datos del Censo 2020 Jalisco
+Fuente: [1]
+
+```{r}
+## Lectura de un archivo CSV con codificación UTF-8
+censo <- read.csv("datos/ITER_14CSV20.csv", encoding = "UTF-8")
+
+## Revisión de caracteristicas del tabla de datos
+dim(censo)
+str(censo)
+
+## Extracción de las filas y columnas útiles para el ejercicio
+censo_selecto <- censo[(censo[,"MUN"] != 0) & 
+                       (censo[,"LOC"] != 0) &
+                       (censo[,"LOC"] != 9998) &
+                       (censo[,"LOC"] != 9999)   
+            ,c("MUN","NOM_MUN","LOC","NOM_LOC","POBTOT")]
+
+## Resumen de los datos extraidos
+str(censo_selecto)
+summary(censo_selecto)
+sum(censo_selecto$POBTOT)
+
+```
+
+## Estimación de la proporción de población urbana en cada municipio de Jalisco
+Consideraremos que son localidades urbanas cuando su boplacion es mayor o igual a 2500 habitantes o cabeceras municipales
+
+> En México, el Marco Geoestadístico Nacional clasifica como urbanas a las localidades de 2 500 y más habitantes y a las cabeceras municipales, aunque tengan menos población, de modo que se utiliza tanto el criterio numérico como el político administrativo debido a que la cabecera municipal es el lugar donde se asientan las autoridades.
+
+```{r}
+
+## preparar la tabla con lista de todos municipios
+municipios <- unique(censo_selecto[,c("MUN","NOM_MUN")])
+head(municipios)
+
+## identificación de localidades urbanas
+censo_selecto$URBANO_LOGICO <- censo_selecto$POBTOT >= 2500 | censo_selecto$LOC == 1
+summary(censo_selecto)
+
+## subtotales de número de habitantes por municipio y tipo de localidad
+ppobl <- aggregate(
+          x = censo_selecto$POBTOT, 
+          by = list(censo_selecto$MUN, censo_selecto$URBANO_LOGICO), 
+          FUN = sum)
+
+## nombres más comprensibles para columnas de la tabla de subtotales
+names(ppobl) <- c("MUN","URBANO_LOGICO","POBTOT")
+
+## vincular con la tabla de municipios los subtotales por municipio 
+## para localidades rurales
+ppobl_rural <- ppobl[ppobl$URBANO_LOGICO == FALSE, c("MUN","POBTOT")]
+names(ppobl_rural) <- c("MUN","POBRURAL")
+poblacion_municipios <- merge(municipios, 
+                              ppobl_rural, 
+                              by = "MUN",
+                              all.x = TRUE)
+
+## vincular con la tabla de municipios los subtotales por municipio 
+## para localidades urbanas
+ppobl_urbana <- ppobl[ppobl$URBANO_LOGICO == TRUE, c("MUN","POBTOT")]
+names(ppobl_urbana) <- c("MUN","POBURBANA")
+poblacion_municipios <- merge(poblacion_municipios, 
+                              ppobl_urbana, 
+                              by = "MUN",
+                              all.x = TRUE)
+
+## sustituir por ceros los valores NA en la columna de población urbana
+poblacion_municipios[is.na(poblacion_municipios$POBURBANA),"POBURBANA"] <- 0
+
+## calcular población total
+poblacion_municipios$POBTOT <- poblacion_municipios$POBURBANA + poblacion_municipios$POBRURAL
+
+## calcular la proporción de población urbana en %
+poblacion_municipios$PROPORCION_URBANA <- 100 * poblacion_municipios$POBURBANA /
+                                          poblacion_municipios$POBTOT
+
+## consultar la tabla resultante
+knitr::kable(poblacion_municipios, digits = 2,
+             col.names = c("N",
+                           "Municipio",
+                           "Rural",
+                           "Urbana",
+                           "Total",
+                           "Proporción urbana (%)"),
+             align = c("l","l","c","c","c","c"),
+             caption = "Proporción de población urbana en municipios Jalisco, 2020")
+
+## guardar tabla para el uso posterior
+write.csv(poblacion_municipios, file = "poblacion_municipios.csv", row.names = FALSE)
+```
+
+## Visualización de los datos estadisticos sobre proporción de población urbana
+
+```{r}
+prop_urb <- poblacion_municipios$PROPORCION_URBANA
+```
+
+### Proporción de población urbana en estado de Jalisco
+Proporción (%): `r round(100 * sum(poblacion_municipios$POBURBANA) / sum(poblacion_municipios$POBTOT), 2)`
+
+### Estadistica descriptiva de proporción de población urbana en municipios de Jalisco
+Valores en %, datos derivado de valores de proporción municipales
+
+* Promedio: `r round(mean(prop_urb), 2)`
+* Mediana: `r round(median(prop_urb), 2)`
+* Rango intercuartilico: `r round(IQR(prop_urb), 2)`
+* Máximo: `r round(max(prop_urb), 2)`
+* Mínimo: `r round(min(prop_urb), 2)`
+* Desviación estandar: `r round(sd(prop_urb), 2)`
+
+### Graficas de distribución de población urbana municipios de Jalisco
+
+```{r}
+options(scipen=999)
+par(mfcol = c(1,2))
+
+mi_boxplot <- boxplot(prop_urb, 
+                      ylab = "Proporción, %",
+                      main = "Diagrama de caja")
+
+mi_histograma <- hist(prop_urb,
+                      xlab = "Proporción, %",
+                      ylab = "Frecuencia",
+                      main = "Histograma")
+
+par(mfcol = c(1,1))
+
+mi_grafica <- plot(x = poblacion_municipios$POBTOT, y = prop_urb,
+                      log = "x", pch = 21, col = "black", bg = "lightgray",
+                      xlab = "Población total (Log)",
+                      ylab = "Proporción urbana, %",
+                      main = "Relación entre población total y proporción de población urbana")
+
+```
+
+
+
+## Infográfico de proporción de población urbana en municipios de Jalisco
+Fuente: [2]
+
+#### Lectura de polígonos de municipios
+
+```{r}
+lim_mun = st_read("datos/LimiteMunicipal_MGJ2012_modificadoDecreto26837.shp")
+summary(lim_mun)
+str(lim_mun)
+
+lim_mun <- merge(lim_mun, poblacion_municipios,
+                  by.x = "CLAVE", by.y = "MUN", all = TRUE)
+```
+
+#### Visualizacipon de mapa
+
+```{r fig.width = 10, fig.height = 8}
+## categorías para clasificación 
+rangos <- c(0,10,20,30,40,50,60,70,80,90,100)
+
+## Posibles paletas: Viridis, Turku, Tropic
+
+## generar vectores con gama de colores conforme a categorias
+lim_mun$color <- hcl.colors(10, "Tropic")[as.numeric(
+        cut(lim_mun$PROPORCION_URBANA, rangos, include.lowest = TRUE))]
+
+str(lim_mun)
+
+plot(lim_mun$geometry, col = lim_mun$color,
+     border = "darkgray",
+     main = "Proporción de población urbana")
+
+legend("topleft", fill = hcl.colors(10, "Tropic"), bty = "n",
+       legend = paste0(rangos[1:10],"-",rangos[2:11],"%"))
+```
+
+
