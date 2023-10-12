@@ -1,0 +1,223 @@
+---
+title: "Ejercicio 3."
+author: "Viacheslav Shalsiko"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+### Resumen
+El **ejercicio 3** es un documento compilado *RMarkdown* que contiene resumen de una estructura de datos sobre el crecimiento de población en los selectos centros urbanos de México en el periodo de 1900 hasta 2020.
+
+### Objetivo de la actividad
+Elaborar y presentar una visualización de la información demográfica en las ciudades o entidades federativas de México
+
+### Fuentes de datos
+
+* IIEG (2021). Área Metropolitana de Guadalajara. [AMG.pdf] Documento en la web <https://iieg.gob.mx/ns/wp-content/uploads/2021/02/AMG.pdf>
+* INEGI (2021). Dinámica. Distrito Federal. Página web <http://cuentame.inegi.org.mx/monografias/informacion/df/poblacion/dinamica.aspx?tema=me&e=09>
+* Orozco-Ochoa, A.et al. (2015).  Expansión urbana. Área Metropolitana de Guadalajara. Análisis y prospectiva: 1970-2045. Instituto de Planeación Metropolitana (IMEPLAN), Guadalajara.
+
+#### Regiones básicas
+* CDMX
+* Guadalajara
+* Zapopan
+
+#### Regiones opcionales por agregar
+* Jalisco
+<https://cuentame.inegi.org.mx/monografias/informacion/jal/poblacion/dinamica.aspx?tema=me&e=14>
+* Nuevo León
+<https://cuentame.inegi.org.mx/monografias/informacion/nl/poblacion/dinamica.aspx?tema=me&e=19>
+* Estado de México
+<https://cuentame.inegi.org.mx/monografias/informacion/mex/poblacion/dinamica.aspx?tema=me&e=15>
+
+```{r}
+library(leaflet)
+sessionInfo()
+```
+
+## Definición de la estructura
+
+```{r definicion}
+## vectores
+ciudad <- c("Ciudad de México","Guadalajara","Zapopan","Tlaquepaque","Monterrey")
+latitud <- c(19.431611,20.677524,20.721603,20.641918,25.67138889)
+longitud <- c(-99.133775,-103.347796,-103.389900,-103.312918,-100.30861111)
+p1900 <- c(0.5,0.101208,0.004346,0.002298,0.062266)
+p1910 <- c(0.7,0.119468,0.004767,0.002438,0.078528)
+p1920 <- c(0.9,0.143376,0.005327,0.002592,0.088479)
+p1930 <- c(1.2,0.179556,0.007603,0.002982,0.132577)
+p1940 <- c(1.8,0.240721,NA,NA,0.186092)
+p1950 <- c(3.1,0.380226,0.033187,0.027115,0.333422)
+p1960 <- c(4.9,0.740394,0.056199,0.054562,0.596939)
+p1970 <- c(6.9,1.199391,0.155488,0.100945,0.858107)
+p1980 <- c(8.8,1.626152,0.389081,0.177324,1.084696)
+p1990 <- c(8.2,1.650205,0.712008,0.339649,1.068996)
+p2000 <- c(8.6,1.646319,1.001021,0.474178,1.110909)
+p2010 <- c(8.9,1.495189,1.243756,0.608114,1.135512)
+p2020 <- c(9.2,1.385629,1.476491,0.687127,1.142952)
+
+## dataframe (tabla)
+tabla_poblacion <- data.frame(
+  ciudad = ciudad,
+  latitud = latitud,
+  longitud = longitud,
+  p1900 = p1900,
+  p1910 = p1910,
+  p1920 = p1920,
+  p1930 = p1930,
+  p1940 = p1940,
+  p1950 = p1950,
+  p1960 = p1960,
+  p1970 = p1970,
+  p1980 = p1980,
+  p1990 = p1990,
+  p2000 = p2000,
+  p2010 = p2010,
+  p2020 = p2020
+)
+
+```
+
+## Visualización de la estructura (obligatorio) y guardar en un archivo (opcional)
+
+```{r}
+str(tabla_poblacion)
+tabla_poblacion
+
+## guardar tabla en un archivo en formato CSV (opcional)
+write.csv(tabla_poblacion, file="tabla_poblacion.csv", row.names = FALSE)
+```
+
+## Visualización de tabla de población con formato (opcional)
+
+```{r}
+nombres_columnas <- c("Ciudad",seq(1900,2020,10))
+knitr::kable(tabla_poblacion[,c(1,4:16)],
+             digits = 2,
+             col.names = nombres_columnas,
+             caption = "Tabla 1. Población en centros urbanos, millones de personas")
+```
+
+## Visualización de población en forma gráfica
+
+```{r fig.width=10}
+colores <- c("pink","orange","lightblue","lightgreen","yellow")
+
+barplot(as.matrix(tabla_poblacion[,c(4:16)]),
+        beside=TRUE, ylab="Millones de personas",
+        names.arg=nombres_columnas[2:14],
+        col=colores)
+legend("topleft", legend=tabla_poblacion[,1],
+       fill=colores, bty="n") 
+```
+
+
+# Mapa de población en 2020
+
+```{r}
+
+
+mapa1 <- leaflet()
+mapa1 <- addTiles(mapa1)
+mapa1 <- setView(mapa1, lng=-102, lat=20, zoom=6)
+mapa1 <- addCircleMarkers(mapa1, 
+                    lng=tabla_poblacion$longitud, 
+                    lat=tabla_poblacion$latitud,
+                    radius = 25 * sqrt(tabla_poblacion$p2020 / 3.1415),
+                    weight=1, color="black", opacity=0.7,
+                    fill=TRUE, fillColor=colores, fillOpacity=0.5)
+# mapa1 <- addLabelOnlyMarkers(mapa1, 
+#                     lng=tabla_poblacion$longitud, 
+#                     lat=tabla_poblacion$latitud,
+#                     label=round(tabla_poblacion[,15],1),
+#                     labelOptions = labelOptions(
+#                               noHide = T, direction = "right",
+#                               textOnly = T, textsize = "20px"
+#                     ))
+mapa1 <-   addLegend(mapa1, 
+                  position = "topright", 
+                  title = c("Población en 2020<br><em>simbolos proporcionales</em>"),
+                  colors = colores,
+                  labels = tabla_poblacion$ciudad,
+                  opacity = 1)
+
+mapa1
+```
+
+
+## Función de tasas de crecimiento
+
+```{r}
+tasa_crecimiento <- function(t1, t2) {
+  dt <- t2 - t1
+  if (is.na(t1) | is.na(t2)) {
+    tasa <- NA
+  } else if (t1 == 0) {
+    tasa <- NA
+  } else {
+    tasa <- 100 * dt / t1
+  }
+  return(tasa)
+}
+
+## pruebas
+#tasa_crecimiento(1.2,1.3)
+#tasa_crecimiento(1.5,1.3)
+#tasa_crecimiento(0,0.1)
+#tasa_crecimiento(NA,1)
+```
+
+## Calculo de tabla de crecimiento
+
+```{r}
+#mapply(tasa_crecimiento, t1 = tabla_poblacion_ciudades[4], t2 = tabla_poblacion_ciudades[5])
+#mapply(tasa_crecimiento, t1 = tabla_poblacion_ciudades[15], t2 = tabla_poblacion_ciudades[16])
+
+tabla_tasas <- tabla_poblacion[,1:3]
+
+for (i in 4:15) {
+  tasa_decada <- mapply(tasa_crecimiento, t1 = tabla_poblacion[,i], t2 = tabla_poblacion[,i+1])
+  tabla_tasas <- cbind(tabla_tasas, data.frame(tasa = tasa_decada))
+  names(tabla_tasas)[i] <- colnames(tabla_poblacion)[i+1]
+}
+
+tabla_tasas
+```
+
+## Visualización de tabla de tasas de crecimiento con formato (opcional)
+
+```{r}
+nombres_columnas <- c("Ciudad",seq(1910,2020,10))
+knitr::kable(tabla_tasas[,c(1,4:15)],
+             digits = 1,
+             col.names = nombres_columnas,
+             caption = "Tabla 2. Tasas de crecimiento de población en centros urbanos, %")
+```
+
+
+```{r fig.width = 10}
+decadas <- seq(1910, 2020, 10)
+plot(x = decadas, y = tabla_tasas[1,4:15], type="n", ylim=c(-10,180),
+        main = "Tasas de crecimiento de poblacion por decadas",
+        ylab = "%", xlab = "décadas")
+lines(x = decadas, y = tabla_tasas[1,4:15], col = colores[1], lwd = 3)
+lines(x = decadas, y = tabla_tasas[2,4:15], col = colores[2], lwd = 3)
+lines(x = decadas, y = tabla_tasas[3,4:15], col = colores[3], lwd = 3)
+lines(x = decadas, y = tabla_tasas[4,4:15], col = colores[4], lwd = 3)
+lines(x = decadas, y = tabla_tasas[5,4:15], col = colores[5], lwd = 3)
+legend("topleft", legend=tabla_tasas[,1],
+       col=colores, lwd=3, bty="n") 
+
+boxplot(tabla_tasas[,4:15],
+        names = decadas,
+        main = "Tasas de crecimiento de poblacion por decadas",
+        ylab = "%")
+
+## grafica de barras
+barplot(tabla_tasas[,15], names.arg = tabla_tasas[,1],
+ main = "Crecimiento en 2010-2020",
+ ylab = "%")
+abline(h = 0)
+```
+
+
