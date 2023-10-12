@@ -1,0 +1,216 @@
+---
+title: "Practica 6"
+author: "Viacheslav Shalsiko"
+date: '`r Sys.Date()`'
+output: html_document
+---
+
+### Preparar el entorno de trabajo
+
+```{r}
+library(foreign)
+library(sf)
+library(sp)
+library(raster)
+library(car)
+library(RColorBrewer)
+library(mgcv)
+
+sessionInfo()
+```
+
+# Reutiliación parcial del código de ejercicio 5
+
+## Lectura de datos fuente
+
+```{r}
+temp <- read.dbf("datos/temp.dbf")
+head(temp)
+
+estaciones <- st_read("datos/Estaciones_SMN_alt_ok.shp")
+summary(estaciones)
+
+mde <- raster("datos/MDE_occidente_500m_float_GEO.tif")
+mde
+```
+
+## Visualización de puntos geoespaciales
+
+```{r fig.height=7}
+plot(mde)
+plot(estaciones, add=TRUE, pch=1, col="red")
+```
+
+## Vicular datos de temperatura con puntos de estaciones SMN
+
+```{r}
+estaciones_temp <- merge(estaciones, temp, by = "NUMERO_DE_")
+```
+
+## Preparar variables
+
+```{r}
+t <- estaciones_temp$TMAY
+alt <- estaciones_temp$Z_FIN
+lat <- st_coordinates(estaciones_temp)[,"Y"]
+
+filtro <- t == 0
+t <- t[!filtro]
+alt <- alt[!filtro]
+lat <- lat[!filtro]
+
+length(t)
+```
+
+## Construir el modelo lineal de regresión de dos variables
+
+```{r modelo2}
+modelo_lineal2 <- lm(t ~ alt + lat)
+summary(modelo_lineal2)
+plot(modelo_lineal2)
+plot(x = modelo_lineal2, which = 4)
+plot(x = modelo_lineal2, which = 5)
+vif(modelo_lineal2)
+```
+
+## Visualizar el modelo lineal de regresión de dos variables
+
+```{r}
+alt_simulado <- seq(0, 4000, 1)
+t_simulado_lat20 <- predict(modelo_lineal2, data.frame(alt = alt_simulado, lat=20), 
+                      interval = c("confidence"))
+t_simulado_lat25 <- predict(modelo_lineal2, data.frame(alt = alt_simulado, lat=25), 
+                      interval = c("confidence"))
+t_simulado_lat30 <- predict(modelo_lineal2, data.frame(alt = alt_simulado, lat=30), 
+                      interval = c("confidence"))
+
+plot(alt, t, xlab = "Elevación (m)", ylab = "T mayo (°C)")
+lines(alt_simulado, t_simulado_lat20[,"fit"], col = "pink")
+lines(alt_simulado, t_simulado_lat25[,"fit"], col = "red")
+lines(alt_simulado, t_simulado_lat30[,"fit"], col = "darkred")
+```
+
+## Evaluación de modelos
+
+```{r}
+estaciones_temp <- estaciones_temp[!filtro,]
+
+estaciones_temp$m2_prediccion <- predict(modelo_lineal2, 
+                                        data.frame(alt=estaciones_temp$Z_FIN,
+                                                   lat=lat))
+estaciones_temp$m2_residuales <- estaciones_temp$TMAY - estaciones_temp$m2_prediccion
+
+par(mfcol=c(1,2))
+
+boxplot(estaciones_temp$m2_residuales, main="Modelo 2 Residuales")
+boxplot(abs(estaciones_temp$m2_residuales), main="Residuales absolutos")
+
+summary(abs(estaciones_temp$m2_residuales))
+```
+
+## Predicción en raster
+
+```{r fig.height=7}
+r_lat <- init(mde, 'y')
+r_alt_lat <- stack(mde, r_lat)
+names(r_alt_lat) <- c("alt", "lat")
+
+TMAY_raster2 <- predict(r_alt_lat, modelo_lineal2)
+TMAY_raster2
+
+plot(TMAY_raster2, 
+     col = rev(brewer.pal(n = 10, name = "RdBu")))
+```
+
+# Practica 6 - nuevo codigo
+
+## Visualización de patron de residuales
+
+```{r fig.width = 8}
+bubble(as(estaciones_temp,"Spatial"), zcol='m2_residuales', 
+       do.sqrt = FALSE,
+       scales = list(draw = TRUE),
+       col = c("coral", "lightblue"), 
+       main = "Distribución de residuales (tamaño proporcional)",
+       key.space = list("right"))
+
+bubble(as(estaciones_temp,"Spatial"), zcol='m2_residuales', 
+       do.sqrt = TRUE, pch = 1,
+       scales = list(draw = TRUE),
+       col = c("coral", "lightblue"), 
+       main = "Distribución de residuales (tamaño proporcional)",
+       key.space = list("right"))
+```
+
+
+## Modelo GAM de residuales
+
+```{r modelo-residuales}
+res <- estaciones_temp$m2_residuales
+lat <- st_coordinates(estaciones_temp)[,"Y"]
+lon <- st_coordinates(estaciones_temp)[,"X"]
+
+interp_resid <- gam(res ~ s(lon, lat, k=400))
+
+summary(interp_resid)
+gam.check(interp_resid)
+plot(interp_resid, n = 1000)
+```
+
+## Evaluar presencia de valores atipicos (puntos influyentes)
+
+```{r}
+m2c_cd <- cooks.distance(interp_resid)
+
+plot(1:length(m2c_cd), m2c_cd, type = "h", 
+     main = "Distancia de Cook", ylab = "Cook's distance")
+lab <- m2c_cd > 0.02
+text(which(lab), m2c_cd[lab], labels = which(lab), pos = 3, cex = 0.5)
+```
+
+## Evaluar patron de predicción y de residuales de nuevo modelo (valores de corrección)
+
+```{r}
+estaciones_temp$m2_correccion <- interp_resid$fitted.values
+estaciones_temp$m2_rGAM <- interp_resid$residuals
+
+bubble(as(estaciones_temp,"Spatial"), zcol='m2_correccion', 
+       do.sqrt = FALSE,
+       scales = list(draw = TRUE),
+       col = c("coral", "lightblue"), 
+       main = "Valores de corrección (modelo de residuales)",
+       key.space = list("right"))
+
+bubble(as(estaciones_temp,"Spatial"), zcol='m2_rGAM', 
+       do.sqrt = FALSE,
+       scales = list(draw = TRUE),
+       col = c("coral", "lightblue"), 
+       main = "Residuales resultantes (modelo de residuales)",
+       key.space = list("right"))
+
+estaciones_temp$m2_prediccion_corregida <- estaciones_temp$m2_prediccion + estaciones_temp$m2_correccion
+
+rsq <- sum((estaciones_temp$TMAY - estaciones_temp$m2_prediccion_corregida)^2)
+tsq <- sum((estaciones_temp$TMAY - mean(estaciones_temp$TMAY))^2)
+R2 <- 1 - rsq/tsq
+R2
+```
+
+## Modelo GAM completo
+
+```{r modelo-gam-comleto}
+m4 <- gam(t ~ alt + lat + s(lon, lat, k = 300))
+
+summary(m4)
+gam.check(m4)
+plot(m4, n = 1000)
+```
+
+
+```{r modelo-gam-comleto2}
+m5 <- gam(t ~ s(alt) + lat + s(lon, lat, k = 300) - 1)
+
+summary(m5)
+gam.check(m5)
+plot(m5, n = 1000)
+```

@@ -1,0 +1,171 @@
+---
+title: "Ejercicio 5"
+author: "Viacheslav Shalisko"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## Cargar bibliotecas necesarias
+
+```{r}
+library(foreign)
+library(sf)
+library(sp)
+library(raster)
+library(RColorBrewer)
+
+sessionInfo()
+```
+
+## Lectura de datos fuente
+
+```{r}
+mi_shp = st_read("datos/Estaciones_SMN_alt_ok.shp")
+summary(mi_shp)
+str(mi_shp)
+
+mi_tiff <- raster("datos/MDE_occidente_500m_float_GEO.tif")
+mi_tiff
+
+mi_dbf <- read.dbf("datos/Temp.dbf")
+dim(mi_dbf)
+head(mi_dbf)
+```
+
+## Visualización de puntos geoespaciales
+
+```{r fig.height=7}
+plot(mi_tiff)
+plot(mi_shp, add = TRUE, pch = 1, col = "red")
+```
+
+## Vincular los datos de temperatura con puntos de estaciones SMN
+
+```{r}
+mi_shp_completo <- merge(mi_shp, mi_dbf, by = "NUMERO_DE_")
+str(mi_shp_completo)
+```
+
+## Preparar variables para el modelado
+
+```{r}
+alt <- mi_shp_completo$Z_FIN
+t <- mi_shp_completo$TOCT
+lat <- st_coordinates(mi_shp_completo)[,"Y"]
+
+filtro_de_valores <- t == 0
+alt <- alt[!filtro_de_valores]
+t <- t[!filtro_de_valores]
+lat <- lat[!filtro_de_valores]
+
+```
+
+## Explorar relación entre variables
+
+```{r}
+plot(alt, t)
+plot(lat, t)
+plot(alt, lat)
+
+cor(alt, t)
+cor(lat, t)
+cor(alt, lat)
+
+cor.test(alt, t)
+cor.test(lat, t)
+cor.test(alt, lat)
+
+plot(alt, t, xlab = "Elevación", ylab = "TOCT")
+plot(lat, t, xlab = "Latitud", ylab = "TOCT")
+plot(alt, lat, xlab = "Elevación", ylab = "Latitud")
+```
+
+
+
+## Construir el modelo lineal
+
+```{r}
+modelo_lineal <- lm(t ~ alt)
+summary(modelo_lineal)
+plot(modelo_lineal)
+
+alt_sim <- seq(0,4000,1)
+t_sim <- predict(modelo_lineal, data.frame(alt = alt_sim),
+                 interval = c("confidence"))
+
+plot(alt, t, xlab = "Elevación", ylab = "TOCT")
+lines(alt_sim, t_sim[,"fit"], col = "red")
+lines(alt_sim, t_sim[,"upr"], col = "red", lty = 2, lwd = 1)
+lines(alt_sim, t_sim[,"lwr"], col = "red", lty = 2, lwd = 1)
+```
+
+## Realizar predicción de temperaturas en formato raster
+
+```{r}
+names(mi_tiff) <- "alt"
+
+TOCT_raster <- predict(mi_tiff, modelo_lineal)
+TOCT_raster
+```
+
+## Visualizar y guardar capa de datos raster resultante
+
+```{r fig.height=7}
+plot(TOCT_raster, 
+     col = rev(brewer.pal(n = 10, name = "RdBu")))
+
+writeRaster(TOCT_raster, 
+            filename = "prediccion_TOCT_32bits.tif",
+            formt = "GTiff", datatype = "FLT4S",
+            overwrite = TRUE)
+```
+
+
+## Construir el modelo lineal de dos variables independientes
+
+```{r}
+modelo_lineal2 <- lm(t ~ alt + lat)
+summary(modelo_lineal2)
+plot(modelo_lineal2)
+
+library(car)
+vif(modelo_lineal2)
+
+alt_sim <- seq(0,4000,1)
+t_sim_lat20 <- predict(modelo_lineal2, data.frame(alt = alt_sim, lat = 20),
+                 interval = c("confidence"))
+t_sim_lat25 <- predict(modelo_lineal2, data.frame(alt = alt_sim, lat = 25),
+                 interval = c("confidence"))
+t_sim_lat30 <- predict(modelo_lineal2, data.frame(alt = alt_sim, lat = 30),
+                 interval = c("confidence"))
+
+
+plot(alt, t, xlab = "Elevación", ylab = "TOCT")
+lines(alt_sim, t_sim_lat20[,"fit"], col = "pink")
+lines(alt_sim, t_sim_lat25[,"fit"], col = "red")
+lines(alt_sim, t_sim_lat30[,"fit"], col = "darkred")
+
+
+#lines(alt_sim, t_sim[,"upr"], col = "red", lty = 2, lwd = 1)
+#lines(alt_sim, t_sim[,"lwr"], col = "red", lty = 2, lwd = 1)
+```
+
+```{r}
+r_lat <- init(mi_tiff, 'y')
+r_alt_lat <- stack(mi_tiff,r_lat)
+names(r_alt_lat) <- c("alt","lat")
+
+TOCT_raster2 <- predict(r_alt_lat, modelo_lineal2)
+TOCT_raster2
+
+```
+
+```{r fig.height=7}
+plot(TOCT_raster2,
+     col = rev(brewer.pal(n = 10, name = "RdBu")))
+
+writeRaster(TOCT_raster2,
+            filename = "prediccion2_TOCT_32bits.tif",
+            formt = "GTiff", datatype = "FLT4S",
+            overwrite = TRUE)
+```

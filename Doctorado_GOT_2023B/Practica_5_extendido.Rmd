@@ -1,0 +1,213 @@
+---
+title: "Practica 5"
+author: "Viacheslav Shalsiko"
+date: '`r Sys.Date()`'
+output: html_document
+---
+
+### Preparar el entorno de trabajo
+
+```{r}
+library(foreign)
+library(sf)
+library(sp)
+library(raster)
+library(car)
+library(RColorBrewer)
+
+sessionInfo()
+```
+
+## Lectura de datos fuente
+
+```{r}
+temp <- read.dbf("datos/temp.dbf")
+head(temp)
+
+estaciones <- st_read("datos/Estaciones_SMN_alt_ok.shp")
+summary(estaciones)
+
+mde <- raster("datos/MDE_occidente_500m_float_GEO.tif")
+mde
+```
+
+## Visualización de puntos geoespaciales
+
+```{r fig.height=7}
+plot(mde)
+plot(estaciones, add=TRUE, pch=1, col="red")
+```
+
+## Vicular datos de temperatura con puntos de estaciones SMN
+
+```{r}
+estaciones_temp <- merge(estaciones, temp, by = "NUMERO_DE_")
+str(estaciones_temp)
+```
+
+## Preparar variables
+
+```{r}
+t <- estaciones_temp$TMAY
+alt <- estaciones_temp$Z_FIN
+lat <- st_coordinates(estaciones_temp)[,"Y"]
+
+filtro <- t == 0
+t <- t[!filtro]
+alt <- alt[!filtro]
+lat <- lat[!filtro]
+
+plot(alt, t)
+plot(lat, t)
+plot(alt, lat)
+
+cor(alt, t)
+cor(lat, t)
+cor(alt, lat)
+
+cor.test(alt, t)
+cor.test(lat, t)
+cor.test(alt, lat)
+```
+
+## Construir el modelo lineal de regresión
+
+```{r}
+modelo_lineal <- lm(t ~ alt)
+summary(modelo_lineal)
+
+plot(modelo_lineal)
+plot(x = modelo_lineal, which = 4)
+plot(x = modelo_lineal, which = 6)
+```
+
+## Visualizar el modelo lineal de regresión
+
+```{r}
+alt_simulado <- seq(0, 4000, 1)
+t_simulado <- predict(modelo_lineal, data.frame(alt = alt_simulado), 
+                      interval = c("confidence"))
+head(t_simulado)
+
+plot(alt, t, xlab="Elevación (m)", ylab="T mayo (°C)")
+lines(alt_simulado, t_simulado[,"fit"], col="red")
+lines(alt_simulado, t_simulado[,"upr"], col="red", lty=2, lwd=1)
+lines(alt_simulado, t_simulado[,"lwr"], col="red", lty=2, lwd=1)
+```
+
+## Construir el modelo lineal de regresión de dos variables
+
+```{r}
+modelo_lineal2 <- lm(t ~ alt + lat)
+summary(modelo_lineal2)
+plot(modelo_lineal2)
+plot(x = modelo_lineal2, which = 4)
+plot(x = modelo_lineal2, which = 6)
+
+vif(modelo_lineal2)
+```
+
+## Visualizar el modelo lineal de regresión de dos variables
+
+```{r}
+t_simulado_lat20 <- predict(modelo_lineal2, data.frame(alt = alt_simulado, lat=20), 
+                      interval = c("confidence"))
+t_simulado_lat25 <- predict(modelo_lineal2, data.frame(alt = alt_simulado, lat=25), 
+                      interval = c("confidence"))
+t_simulado_lat30 <- predict(modelo_lineal2, data.frame(alt = alt_simulado, lat=30), 
+                      interval = c("confidence"))
+
+plot(alt, t, xlab = "Elevación (m)", ylab = "T mayo (°C)")
+lines(alt_simulado, t_simulado_lat20[,"fit"], col = "pink")
+lines(alt_simulado, t_simulado_lat25[,"fit"], col = "red")
+lines(alt_simulado, t_simulado_lat30[,"fit"], col = "darkred")
+```
+
+## Construir el modelo lineal de regresión de dos variables con interacción
+
+```{r}
+modelo_lineal3 <- lm(t ~ alt * lat)
+summary(modelo_lineal3)
+plot(modelo_lineal3)
+plot(x = modelo_lineal3, which = 4)
+plot(x = modelo_lineal3, which = 6)
+
+```
+
+## Visualizar el modelo lineal de regresión de dos variables con interacción
+
+```{r}
+t_simulado2_lat20 <- predict(modelo_lineal3, data.frame(alt = alt_simulado, lat=20), 
+                      interval = c("confidence"))
+t_simulado2_lat25 <- predict(modelo_lineal3, data.frame(alt = alt_simulado, lat=25), 
+                      interval = c("confidence"))
+t_simulado2_lat30 <- predict(modelo_lineal3, data.frame(alt = alt_simulado, lat=30), 
+                      interval = c("confidence"))
+
+plot(alt, t, xlab = "Elevación (m)", ylab = "T mayo (°C)")
+lines(alt_simulado, t_simulado2_lat20[,"fit"], col = "pink")
+lines(alt_simulado, t_simulado2_lat25[,"fit"], col = "red")
+lines(alt_simulado, t_simulado2_lat30[,"fit"], col = "darkred")
+```
+
+## Residuales
+
+```{r}
+
+estaciones_temp <- estaciones_temp[!filtro,]
+
+estaciones_temp$m1_prediccion <- predict(modelo_lineal, 
+                                        data.frame(alt=estaciones_temp$Z_FIN))
+estaciones_temp$m1_residuales <- estaciones_temp$TMAY - estaciones_temp$m1_prediccion
+
+estaciones_temp$m2_prediccion <- predict(modelo_lineal2, 
+                                        data.frame(alt=estaciones_temp$Z_FIN,
+                                        lat=st_coordinates(estaciones_temp)[,"Y"]))
+estaciones_temp$m2_residuales <- estaciones_temp$TMAY - estaciones_temp$m2_prediccion
+
+estaciones_temp$m3_prediccion <- predict(modelo_lineal3, 
+                                        data.frame(alt=estaciones_temp$Z_FIN,
+                                        lat=st_coordinates(estaciones_temp)[,"Y"]))
+estaciones_temp$m3_residuales <- estaciones_temp$TMAY - estaciones_temp$m3_prediccion
+
+summary(estaciones_temp[,c("m1_residuales","m2_residuales","m3_residuales")])
+boxplot(estaciones_temp$m1_residuales)
+boxplot(estaciones_temp$m2_residuales)
+boxplot(estaciones_temp$m3_residuales)
+
+t.test(estaciones_temp$m1_residuales, estaciones_temp$m2_residuales)
+t.test(estaciones_temp$m1_residuales, estaciones_temp$m3_residuales)
+t.test(estaciones_temp$m2_residuales, estaciones_temp$m3_residuales)
+wilcox.test(estaciones_temp$m1_residuales, estaciones_temp$m2_residuales)
+wilcox.test(estaciones_temp$m1_residuales, estaciones_temp$m3_residuales)
+wilcox.test(estaciones_temp$m2_residuales, estaciones_temp$m3_residuales)
+
+
+bubble(as(estaciones_temp,"Spatial"), zcol='m1_residuales', 
+       scales = list(draw = TRUE),
+       col = c("coral", "lightblue"), 
+       main = "Distribución de residuales",
+       key.space = list("right"))
+
+bubble(as(estaciones_temp,"Spatial"), zcol='m2_residuales', 
+       scales = list(draw = TRUE),
+       col = c("coral", "lightblue"), 
+       main = "Distribución de residuales",
+       key.space = list("right"))
+
+bubble(as(estaciones_temp,"Spatial"), zcol='m3_residuales', 
+       scales = list(draw = TRUE),
+       col = c("coral", "lightblue"), 
+       main = "Distribución de residuales",
+       key.space = list("right"))
+```
+
+## Selección
+
+```{r}
+modelo_lineal_full <- lm(t ~ alt + lat)
+
+slm <- step(object = modelo_lineal_full, 
+        direction = "backward")
+```
+
