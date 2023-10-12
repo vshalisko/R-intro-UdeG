@@ -1,0 +1,28 @@
+---
+title: "Ejercicio 2."
+author: "Viacheslav Shalsiko"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+```{r}
+library(leaflet)
+sessionInfo()
+```
+
+
+# Mapa de ubicación de Rectoría general, CUCSH Belenes y CEED de la UdeG
+
+```{r}
+mapa1 <- leaflet()
+mapa1 <- addTiles(mapa1)
+mapa1 <- setView(mapa1, lng=-103.35, lat=20.685, zoom=12)
+mapa1 <- addMarkers(mapa1, lng = -103.3588, lat = 20.6744)
+mapa1 <- addMarkers(mapa1, lng = -103.37753, lat = 20.74074)
+mapa1 <- addMarkers(mapa1, lng = -103.38306, lat = 20.67857)
+ 
+
+mapa1
+```
+

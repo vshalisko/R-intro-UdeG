@@ -1,0 +1,27 @@
+---
+title: "Ejercicio 1"
+author: "Viacheslav Shalsiko"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Parte 1
+Infromación sobre el entorno de trabajo y paquetes disponbles en sistema.
+
+```{r}
+sessionInfo()
+installed.packages()
+```
+
+# Parte 2
+Ejemplo de visualización de datos
+
+```{r}
+precip
+hist(precip, main="Histograma de precipitación", 
+     xlab="precipitación (pulgadas)", ylab="F",
+     col="beige")
+boxplot(precip, main="Diagrama de caja de precipitación",
+        ylab="precipitación (pulgadas)", col="beige")
+```
+
