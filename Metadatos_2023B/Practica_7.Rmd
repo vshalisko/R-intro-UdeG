@@ -1,0 +1,68 @@
+---
+title: "Practica 7"
+author: "Viacheslav Shalsiko"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+### Preparar el entorno
+
+```{r}
+library(sf)
+library(sp)
+library(raster)
+library(prettymapr)
+sessionInfo()
+```
+
+### Lectura de datos
+
+```{r}
+estados <- st_read("datos2/Estados.shp")
+municipios <- st_read("datos2/Municipios_select.shp")
+ciudades <- st_read("datos2/Mexico_Ciudades.shp")
+estaciones <- st_read("datos2/Estaciones_SMN_alt_ok.shp")
+mde <- raster("datos2/MDE_occidente_500m_float_GEO.tif")
+mde
+```
+
+### Parte 1. Visualización de estaciones SMN en Occidente
+
+```{r fig.width=8, fig.height=10}
+plot(mde, main = "Estaciones SMN")
+estados <- st_transform(estados, crs=st_crs(mde))
+summary(estados)
+plot(st_geometry(estados), border = "darkgrey", add=TRUE)
+plot(st_geometry(estaciones), add=TRUE, pch=5, col="red")
+```
+
+### Parte 2. Visualización de municipios en Occidente
+
+```{r fig.width=10, fig.height=8}
+par(cex = 0.7)
+plot(st_geometry(municipios), axes=TRUE,
+     border="gray",
+     xlim=c(2000000,3000000), 
+     main = "Municipios en cinco estados de México")
+par(cex = 1)
+estados <- st_transform(estados, crs=st_crs(municipios))
+plot(st_geometry(estados), border = "red", add=TRUE)
+ciudades <- st_transform(ciudades, crs=st_crs(municipios))
+plot(st_geometry(ciudades), add=TRUE, pch=19, cex=1.2)
+
+summary(ciudades)
+ciudades_coordenadas <- st_coordinates(ciudades)
+
+text(
+  x = ciudades_coordenadas[,1],
+  y = ciudades_coordenadas[,2],
+  labels = as.character(ciudades$CIUDAD),
+  pos = 3, offset = 0.4, col = "black", cex = 0.6)
+
+scalebar(d=100000, type="bar", divs=4, 
+         label=c("0","50","100"), below="km", cex=0.5)
+
+# opcional
+addnortharrow()
+```
+

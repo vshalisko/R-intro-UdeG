@@ -1,0 +1,102 @@
+---
+title: "Practica 8. Regresión lineal"
+author: "Viacheslav Shalsiko"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(sf)
+library(sp)
+library(raster)
+library(foreign)
+library(RColorBrewer)
+sessionInfo()
+```
+
+### Lectura de capas de datos
+
+```{r}
+temp <- read.dbf("insumos/temp.dbf")
+dim(temp)
+head(temp)
+
+estaciones <- st_read("insumos/Estaciones_SMN_alt_ok.shp")
+summary(estaciones)
+
+mde <- raster("insumos/MDE_occidente_500m_float_GEO.tif")
+mde
+```
+
+### Preparar los datos
+
+```{r}
+estaciones_temp <- merge(estaciones, temp, by = "NUMERO_DE_")
+head(estaciones_temp)
+plot(estaciones_temp$TABR)
+plot(estaciones_temp["TABR"])
+plot(estaciones_temp$Z_FIN)
+plot(estaciones_temp["Z_FIN"])
+
+filtro <- estaciones_temp$TABR == 0
+
+estaciones_temp <- estaciones_temp[!filtro,]
+estaciones_temp$LAT <- st_coordinates(estaciones_temp)[,"Y"]
+dim(estaciones_temp)
+```
+
+### Representar relacion entre temperatura y elevación
+
+```{r}
+plot(y = estaciones_temp$TABR, x = estaciones_temp$Z_FIN)
+modelo_lineal <- lm(TABR ~ Z_FIN * LAT, data = estaciones_temp)
+modelo_lineal
+summary(modelo_lineal)
+plot(modelo_lineal)
+plot(x = modelo_lineal, which = 4)
+```
+
+### Predicción con el modelo con datos simulados
+
+```{r}
+alt_simulado <- seq(0, 4000, 1)
+t_simulado_lat20 <- predict(modelo_lineal, data.frame(Z_FIN = alt_simulado, LAT = 20), 
+                      interval = c("confidence"))
+t_simulado_lat25 <- predict(modelo_lineal, data.frame(Z_FIN = alt_simulado, LAT = 25), 
+                      interval = c("confidence"))
+t_simulado_lat30 <- predict(modelo_lineal, data.frame(Z_FIN = alt_simulado, LAT = 30), 
+                      interval = c("confidence"))
+head(t_simulado_lat20)
+
+plot(y = estaciones_temp$TABR, x = estaciones_temp$Z_FIN,
+     xlab = "Elevación (m)", ylab = "T mayo (°C)", col="lightgray")
+lines(alt_simulado, t_simulado_lat20[,"fit"], col = "red")
+lines(alt_simulado, t_simulado_lat20[,"lwr"], col = "pink", lty=2, lwd=1)
+lines(alt_simulado, t_simulado_lat20[,"upr"], col = "pink", lty=2, lwd=1)
+lines(alt_simulado, t_simulado_lat25[,"fit"], col = "red")
+lines(alt_simulado, t_simulado_lat25[,"lwr"], col = "pink", lty=2, lwd=1)
+lines(alt_simulado, t_simulado_lat25[,"upr"], col = "pink", lty=2, lwd=1)
+lines(alt_simulado, t_simulado_lat30[,"fit"], col = "red")
+lines(alt_simulado, t_simulado_lat30[,"lwr"], col = "pink", lty=2, lwd=1)
+lines(alt_simulado, t_simulado_lat30[,"upr"], col = "pink", lty=2, lwd=1)
+```
+
+### Predicción con el modelo con datos observados
+
+```{r fig.height=8}
+r_lat <- init(mde, "y")
+r_alt_lat <- stack(mde, r_lat)
+names(r_alt_lat) <- c("Z_FIN", "LAT")
+
+TABR_prediccion <- predict(r_alt_lat, modelo_lineal)
+TABR_prediccion
+
+writeRaster(TABR_prediccion, 
+            filename = "TABR_prediccion_32bits.tif",
+            formt = "GTiff", datatype = "FLT4S",
+            overwrite = TRUE)
+
+plot(TABR_prediccion, col = rev(brewer.pal(n = 10, name = "RdBu")))
+```
+
+
