@@ -1,0 +1,167 @@
+---
+title: "Georriesgos pruebas 1"
+author: "Viacheslav Shalsiko"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(sp)
+library(rgdal)
+library(leaflet)
+```
+
+# Leer capas de datos
+
+```{r}
+hexagonos <- rgdal::readOGR("MallaHexagonos/MallaHexagonos_GEO_JSON.geojson", encoding = 'UTF-8')
+inundaciones <- rgdal::readOGR("MallaHexagonos/ZonasInundacion_GEO_JSON.geojson", encoding = 'UTF-8')
+pasos <- rgdal::readOGR("MallaHexagonos/Pasos_desnivel1_GEO_JSON.geojson", encoding = 'UTF-8')
+#hexagonos_raw <- topoData <- readLines("hexagonos_ver1_seleccion_geo_JSON.geojson") %>% paste(collapse = "\n") 
+
+hexagonos@data["Eventos"][hexagonos@data["Eventos"] == '1 evento'] <- '1'
+hexagonos@data$Eventos <- factor(hexagonos@data$Eventos, ordered = TRUE,
+                                    levels = c('1', '2 a 5', '6 a 9', '10 a 30', 'Mas de 30'))
+levels(hexagonos@data$Eventos)
+#hexagonos@data$Eventos_int <- as.numeric(hexagonos@data$Eventos)
+hexagonos@data$random <- runif(n = dim(hexagonos@data)[1])
+
+pasos@data["Name"][is.na(pasos@data["Name"])] <- 'sin nombre'
+pasos@data$Peligro <- factor(pasos@data$Peligro, ordered = TRUE,
+                                    levels = c('Baja', 'Media', 'Alta', 'Muy alta'))
+levels(pasos@data$Peligro)
+
+str(hexagonos@data)
+str(inundaciones@data)
+str(pasos@data)
+```
+
+# Definir parametros de visualziación
+
+```{r}
+knitr::asis_output(htmltools::htmlPreserve("
+<style>
+@media print
+{
+h1 {page-break-before:always}
+.legend {
+   visble:visible;
+   background:white !important;
+   -webkit-print-color-adjust: exact;
+   opacity: 1;
+  }
+}
+</style>
+"))
+
+## Función para generar leyenda con circulos
+ addLegendCustom <- function(map, title, colors, labels, sizes, position, group, className, opacity = 0.5) {
+  colorAdditions <- paste0(colors, "; border-radius: 50%; width:", sizes, "px; height:", sizes, "px")
+  labelAdditions <- paste0("<div style='display: inline-block; height: ", 
+                           sizes, "px; margin-top: 4px; line-height: ", sizes, "px;'>", 
+                           labels, "</div>")
+  return(addLegend(map, colors = colorAdditions, 
+                   labels = labelAdditions, opacity = opacity, 
+                   position = position, group = group, className = className, title = title))
+ }
+filterHighLevel <- function(labels) {
+  labels[labels < 20] <- ""
+  return(as.character(labels))
+}
+```
+
+# Generar mapa
+
+```{r fig.width = 8, fig.height = 7}
+mi_paleta <- c("darkgreen", "lightgreen", "yellow", "red", "darkred")
+mi_paleta_continua <- colorRampPalette(mi_paleta)
+pal <- colorFactor(mi_paleta_continua(5), NULL)
+
+pal_viridis <- colorNumeric("viridis", NULL)
+
+mapa1 <- leaflet()
+mapa1 <- addTiles(mapa1)
+mapa1 <- setView(mapa1, lng=-103.35, lat=20.7, zoom=12)
+
+mapa1 <- addCircleMarkers(mapa1, data = pasos,
+                          weight = ~as.numeric(Peligro) * 3 + 1,
+                          radius = 0, 
+                          color= "red", stroke = TRUE, fillOpacity = 0.8,
+                          popup = ~paste0("Paso desnivel: ", Name),
+                          group = "pasos"
+                          )
+
+## agregar poligonos SP
+mapa1 <- addPolygons(mapa1, data = hexagonos, color = "#444444", 
+                     weight = 0.5, smoothFactor = 0.5, 
+                     opacity = 1.0, fillOpacity = 0.5,
+                     fillColor = ~pal(Eventos),
+                     highlightOptions = highlightOptions(color = "white", 
+                                      weight = 2, bringToFront = TRUE),
+                     #label = ~paste0("Eventos: ", Eventos),
+                     #popup = ~paste0("Eventos: ",Eventos,"</br>Mas información: <a href=", Eventos, ">", formatC(10000*random, big.mark = ","), "</a>")
+                     popup = ~paste0("Eventos: ",Eventos),
+                     group = "inundaciones"
+                     )
+
+mapa1 <-addPolygons(mapa1, data = inundaciones, color = "#777777",
+                    weight = 0.5, smoothFactor = 0.5,
+                    opacity = 1.0, fillOpacity = 0.5,
+                    fillColor = "red",
+                    highlightOptions = highlightOptions(color = "white", 
+                                      weight = 2, bringToFront = TRUE),
+                    popup = ~paste0("Zona: ",Pass),
+                    group = "zonas de mayor riesgo de inundación"
+                    )
+
+mapa1 <- addLayersControl(mapa1,
+                        baseGroups = c("zonas de mayor riesgo de inundación",
+                                       "inundaciones",
+                                       "pasos"),
+                        #overlayGroups = c("leyenda"),
+                        options = layersControlOptions(collapsed = FALSE)
+                        )
+
+mapa1 <- addLegend(mapa1,
+                  #group = "leyenda",
+                  group = "inundaciones",
+                  className = "info legend inundaciones",
+                  position = "topright",
+                  title = c("Inundaciones históricas:<br><em>eventos registrados</em>"),
+                  colors = mi_paleta,
+                  labels = levels(hexagonos@data$Eventos)[1:5],
+                  opacity = 0.6)
+
+mapa1 <- addLegendCustom(mapa1, 
+                      title = "Peligrosidad:<br><em>pasos desnivel</em>",
+                      group = "pasos",
+                      className = "info legend pasos",
+                      position = "topright",
+                      colors = c("red", "red", "red", "red"), 
+                      labels = c("Baja", "Media", "Alta", "Muy alta"), 
+                      sizes = c(4, 7, 10, 13),
+                      opacity = 0.6)
+
+
+mapa1 <- htmlwidgets::onRender(mapa1,"
+    function(el, x) {
+      var updateLegend = function () {
+          var selectedGroup = document.querySelectorAll('input:checked')[0].nextSibling.innerText.substr(1);
+
+          document.querySelectorAll('.legend').forEach(a => a.hidden=true);
+          document.querySelectorAll('.legend').forEach(l => {
+            if (l.classList.contains(selectedGroup)) l.hidden=false;
+          });
+      };
+      updateLegend();
+      this.on('baselayerchange', el => updateLegend());
+    }")
+
+## trabajar con JSON fuente
+#mapa1 <- addGeoJSON(mapa1, geojson = hexagonos_raw, 
+#                    weight = 1, color = "#444444", fill = FALSE)
+
+
+mapa1
+```
+
