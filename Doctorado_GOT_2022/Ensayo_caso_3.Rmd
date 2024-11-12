@@ -1,0 +1,121 @@
+---
+title: "Caso 3 de Salvador"
+author: "Viacheslav Shalisko"
+date: "2022-11-05"
+output: html_document
+---
+
+```{r}
+set.seed(1234)
+options(scipen = 6, digits = 3)
+
+library(sp)
+library(rgdal)
+library(raster)
+library(spdep)
+library(ncf)
+```
+
+### Lectura de datos fuente
+
+```{r datos-fuente, cache = TRUE}
+fin <- readOGR("INSUMOS/servicios_financieros.shp")
+fin
+str(fin@data)
+
+AMG <- readOGR("INSUMOS/LIMITES AMG.shp")
+AMG
+```
+
+```{r}
+crs_utm <- CRS("+proj=utm +zone=13 +datum=WGS84 +units=m +no_defs")
+AMG <- spTransform(AMG, crs_utm)
+
+plot(AMG)
+plot(fin, add = TRUE)
+```
+
+## Definición de parámetros
+
+```{r}
+## Puntos incluidos en la vecindad
+k <- 50
+```
+
+
+## Preparar los datos para analisis de autocorrelación espacial
+
+```{r cache = TRUE}
+fin_knn <- knearneigh(fin, k = k, longlat = NULL, use_kd_tree = TRUE)
+fin_nb <- knn2nb(fin_knn)
+
+#str(fin_knn)
+#str(fin_nb)
+
+fin_coord <- coordinates(fin)
+plot(fin_nb, fin_coord)
+
+#fin_lw <- nb2listw(fin_nb, style="W", zero.policy=TRUE)
+
+fin_lw <- nb2listwdist(fin_nb, x = fin, style="W",type="idw", zero.policy=TRUE)
+
+
+#str(fin_lw)
+```
+
+
+```{r}
+suma_G <- 0
+suma_Gw <- 0
+suma_Gw_inv <- 0
+suma_X <- 0
+
+n <- fin_knn$np
+
+for (i in 1:n) {
+#for (i in 1:100) {
+  #print(paste0("punto: ",i))
+  empl <- fin@data[i,"EMPLEO"]
+  #print(paste0("empleados: ", as.numeric(empl)))
+  suma_X <- suma_X + empl
+  weights <- fin_lw$weights[[i]]
+  #print(paste0("primer vecino: ",fin_knn$nn[i,1]))
+  for (j in 1:k) {
+    emplv <- fin@data[fin_knn$nn[i,j],"EMPLEO"]
+    #print(paste0("vecino ",j,": ",fin_knn$nn[i,j]," empleados: ",emplv))
+    comp_form <- abs(empl - emplv)
+    #print(comp_form)
+    comp_form_w <- weights[j] * comp_form
+    comp_form_w_inv <- (1 - weights[j]) * comp_form
+    
+    suma_G <- suma_G + comp_form
+    suma_Gw <- suma_Gw + comp_form_w
+    suma_Gw_inv <- suma_Gw_inv + comp_form_w_inv
+  }
+}
+
+
+```
+
+## Valores resultantes en el calculo de índice
+
+```{r}
+suma_G
+
+X_prima <- suma_X / n
+X_prima
+
+G <- suma_G / (1 * n^2 * X_prima)
+G
+
+Gw <- suma_Gw / (1 * n^2 * X_prima)
+Gw
+
+Gw_inv <- suma_Gw_inv / (1 * n^2 * X_prima)
+Gw_inv
+
+Gfinal <- Gw + Gw_inv
+Gfinal
+
+```
+

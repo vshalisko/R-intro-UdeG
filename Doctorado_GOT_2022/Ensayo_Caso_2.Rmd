@@ -1,0 +1,346 @@
+---
+title: "Ensayo Caso 2"
+author: "Viacheslav Shalisko"
+date: "2022-10-21"
+output: html_document
+---
+
+### Proyecto de Carlos
+## Autocorrelación espacial de empresas madereras por tamaño de empresa
+
+```{r setup, include=FALSE}
+set.seed(1234)
+options(scipen = 6, digits = 3)
+
+library(sp)
+library(raster)
+library(rgdal)
+library(spdep)
+library(ncf)
+
+pal <- colorRampPalette(c("darkblue","white","darkred"))
+pal2 <- colorRampPalette(c("pink","yellow","darkgreen"))
+pal3 <- colorRampPalette(c("red","pink","beige"))
+```
+
+### Lectura de datos fuente
+
+```{r source, cache=TRUE}
+DM <- readOGR("Insumos_carlos/Jal_Den_Mad_Todas.shp")
+DM
+```
+
+```{r}
+mun <- readOGR("Insumos_carlos/LimiteMunicipal_MGJ2012_modificadoDecreto26837.shp")
+mun
+```
+
+## Visualización de datos fuente
+
+```{r}
+#str(DM@data)
+
+plot(DM, main = "Ubicación de empresas madereras")
+plot(mun, border = "gray", add = TRUE)
+
+plot(density(DM$Personas), main = "Distrigución de empresas por tamaño")
+
+DM@data$Personas_log <- log(DM@data$Personas)
+plot(density(DM$Personas_log), main = "Distrigución de empresas por tamaño (Log)")
+
+```
+
+### Identificación de vecinos
+Para cada empresa se determinan 30 vecinos mas cercanos
+
+```{r}
+
+DM_knn <- knearneigh(DM, k = 30, longlat = NULL, use_kd_tree = TRUE)
+str(DM_knn)
+
+DM_nb <- knn2nb(DM_knn)
+#str(DM_nb)
+
+DM_lw <- nb2listw(DM_nb, style="U", zero.policy=TRUE)
+```
+
+### Visualización de relación entre los vecinos
+
+```{r}
+DM_coords <- coordinates(DM)
+plot(DM_nb, DM_coords)
+plot(mun, border = "gray", add = TRUE)
+```
+
+### Prueba I de Moran global
+
+```{r}
+M0 <- moran.test(DM$Personas, DM_lw)
+## Estadistica resultante
+M0
+
+## Prueba con datos logaritmicos
+M0_log <- moran.test(DM$Personas_log, DM_lw)
+## Estadistica resultante
+M0_log
+```
+
+### Prueba I de Moran global con simulación Monte Carlo
+
+```{r}
+# Prueba de Morano con simulación de MC
+M1 <- moran.mc(DM$Personas, DM_lw, nsim=9999, alternative="greater")
+plot(M1)
+M1
+
+# Pruaba con datos logaritmicos
+M1_log <- moran.mc(DM$Personas_log, DM_lw, nsim=9999, alternative="greater")
+plot(M1_log)
+M1_log
+```
+
+```{r}
+moran.plot(DM$Personas, DM_lw, zero.policy=NULL)
+moran.plot(DM$Personas_log, DM_lw, zero.policy=NULL)
+```
+
+## Grafica de correlación en función de distancia
+
+```{r corrplot, cache = TRUE}
+DM_corr <- spline.correlog(x=coordinates(DM)[,1], y=coordinates(DM)[,2],
+                         z=DM$Personas, resamp=20, quiet=TRUE)
+plot(DM_corr, ylim = c(-0.25,0.25))
+
+#w <- 1/as.matrix(dist(coordinates(DM)))
+
+#diag(w) <- 0
+#moran.test(DM$Personas,mat2listw(w))
+```
+
+## Prueba de Moran local
+
+```{r}
+M2 <- localmoran(DM$Personas, DM_lw, zero.policy=TRUE)
+
+str(M2)
+head(M2)
+plot(M2)
+
+DM_MM <- cbind(DM, M2)
+
+summary(DM_MM$Ii)
+summary(DM_MM$E.Ii)
+M2_at <- attr(x = M2, which = "quadr")
+str(M2_at)
+summary(M2_at$mean)
+summary(M2_at$median)
+summary(M2_at$pysal)
+
+DM_MM <- cbind(DM_MM, M2_at)
+
+# Variable categorica para colores
+DM_MM$Ii_factor <- cut(DM_MM$Ii, breaks = pretty(DM_MM$Ii, n = 4),
+                 right = FALSE)
+DM_MM$Ii_color <- pal2(4)[DM_MM$Ii_factor]
+
+plot(DM_MM, pch = 19, col = DM_MM$Ii_color,
+     main = "Valor Ii")
+plot(mun, border = "gray", add = TRUE)
+legend("topleft", legend = levels(DM_MM$Ii_factor),
+       pch = 19, col = pal2(4), bty = "n")
+
+
+plot(DM_MM, pch = 1, col = pal(4)[DM_MM$median],
+     main = "Clases de corelación (mediana)")
+plot(mun, border = "gray", add = TRUE)
+legend("topleft", legend = levels(DM_MM$median),
+       fill = pal(4), bty = "n")
+
+plot(DM_MM, pch = 1, col = pal(4)[DM_MM$mean],
+     main = "Clases de corelación (promedio)")
+plot(mun, border = "gray", add = TRUE)
+legend("topleft", legend = levels(DM_MM$mean),
+       fill = pal(4), bty = "n")
+
+
+```
+
+## Agregar conteo de personas involucradas en industria maderera por municipio
+
+```{r}
+mun[,"CLAVE"]
+#mun@data[,"CLAVE"]
+
+DM_mun <- over(DM, mun[,"CLAVE"])
+DM_mun_full <- cbind(DM, DM_mun)
+
+#str(DM_mun_full)
+DM_mun_full[,c("Personas","CLAVE")]
+
+mun_sumas <- aggregate(Personas ~ CLAVE, 
+                       data = DM_mun_full@data[,c("Personas","CLAVE")], 
+                       FUN = "sum")
+mun <- merge(x = mun, y = mun_sumas, by = "CLAVE")
+
+mun@data[is.na(mun@data$Personas),"Personas"] <- 1   ## no 0 para poder calcular logaritmo
+
+mun@data$Personas_log <- log(mun@data$Personas)
+
+#str(mun)
+```
+
+```{r}
+plot(density(mun$Personas), main = "Distribución de municipios por tamaño de ind. maderera")
+plot(density(mun$Personas_log), main = "Distribución de municipios por tamaño de ind. maderera (Log)")
+```
+
+
+### Determinar vecinos más cercanos de municipios
+
+```{r}
+mun_neighbours <- poly2nb(mun)
+mun_neighbours
+
+plot(mun, border = 'lightgrey')
+plot(mun_neighbours, coordinates(mun), add = TRUE, col = 'red')
+
+mun_lw <- nb2listw(mun_neighbours)
+```
+
+### Prueba I de Moran global con simulación Monte Carlo
+
+```{r}
+# Prueba de Moran con simulación de MC
+M3 <- moran.mc(mun$Personas, mun_lw, nsim=9999, alternative="greater")
+plot(M3)
+M3
+
+# Pruaba con datos logaritmicos
+M3_log <- moran.mc(mun$Personas_log, mun_lw, nsim=9999, alternative="greater")
+plot(M3_log)
+M3_log
+
+```
+
+```{r}
+moran.plot(mun$Personas, mun_lw, zero.policy=NULL)
+moran.plot(mun$Personas_log, mun_lw, zero.policy=NULL)
+```
+
+### Moran local por municipio con número de personas involucrados en industria maderera
+
+```{r}
+M4 <- localmoran(mun$Personas, mun_lw, zero.policy=TRUE)
+
+head(M4)
+plot(M4)
+#M4
+
+mun_MM <- cbind(mun, M4)
+
+summary(mun_MM$Ii)
+summary(mun_MM$E.Ii)
+M4_at <- attr(x = M4, which = "quadr")
+
+summary(M4_at$mean)
+summary(M4_at$median)
+summary(M4_at$pysal)
+mun_MM <- cbind(mun_MM, M4_at)
+
+#str(mun_MM)
+
+# Variable categorica para colores Ii
+mun_MM$Ii_factor <- cut(mun_MM$Ii, breaks = pretty(mun_MM$Ii, n = 4),
+                 right = FALSE)
+mun_MM$Ii_color <- pal2(4)[mun_MM$Ii_factor]
+
+plot(mun_MM, col = mun_MM$Ii_color,
+     main = "Valor Ii")
+plot(mun, border = "gray", add = TRUE)
+legend("topleft", legend = levels(mun_MM$Ii_factor),
+       fill = pal2(4), bty = "n")
+
+#mun_MM@data[,14]
+# Variable categorica para colores P (significancia)
+mun_MM$P_factor <- cut(mun_MM@data[,14], breaks = c(0,0.01,0.05,0.1,1),
+                  right = FALSE)
+mun_MM$P_color <- pal3(4)[mun_MM$P_factor]
+ 
+plot(mun_MM, col = mun_MM$P_color,
+    main = "Valor P (significancia)")
+plot(mun, border = "gray", add = TRUE)
+legend("topleft", legend = levels(mun_MM$P_factor),
+        fill = pal3(4), bty = "n")
+
+plot(mun_MM, col = pal(4)[mun_MM$median],
+     main = "Clases de corelación (mediana)")
+plot(mun, border = "gray", add = TRUE)
+legend("topleft", legend = levels(mun_MM$median),
+       fill = pal(4), bty = "n")
+
+plot(mun_MM, col = pal(4)[mun_MM$mean],
+     main = "Clases de corelación (promedio)")
+plot(mun, border = "gray", add = TRUE)
+legend("topleft", legend = levels(mun_MM$mean),
+       fill = pal(4), bty = "n")
+
+```
+
+
+### Moran local por municipio con logaritmo de número de personas involucrados en industria maderera
+
+```{r}
+M4_log <- localmoran(mun$Personas_log, mun_lw, zero.policy=TRUE)
+
+head(M4_log)
+plot(M4_log)
+#M4_log
+
+mun_MM_log <- cbind(mun, M4_log)
+
+summary(mun_MM_log$Ii)
+summary(mun_MM_log$E.Ii)
+M4_log_at <- attr(x = M4_log, which = "quadr")
+
+summary(M4_log_at$mean)
+summary(M4_log_at$median)
+summary(M4_log_at$pysal)
+mun_MM_log <- cbind(mun_MM_log, M4_log_at)
+
+#str(mun_MM)
+
+# Variable categorica para colores Ii
+mun_MM_log$Ii_factor <- cut(mun_MM_log$Ii, breaks = pretty(mun_MM_log$Ii, n = 4),
+                 right = FALSE)
+mun_MM_log$Ii_color <- pal2(4)[mun_MM_log$Ii_factor]
+
+plot(mun_MM_log, col = mun_MM_log$Ii_color,
+     main = "Valor Ii")
+plot(mun, border = "gray", add = TRUE)
+legend("topleft", legend = levels(mun_MM_log$Ii_factor),
+       fill = pal2(4), bty = "n")
+
+# Variable categorica para colores P (significancia)
+mun_MM_log$P_factor <- cut(mun_MM_log@data[,14], breaks = c(0,0.01,0.05,0.1,1),
+                  right = FALSE)
+mun_MM_log$P_color <- pal3(4)[mun_MM_log$P_factor]
+ 
+plot(mun_MM_log, col = mun_MM_log$P_color,
+    main = "Valor P (significancia)")
+plot(mun, border = "gray", add = TRUE)
+legend("topleft", legend = levels(mun_MM_log$P_factor),
+        fill = pal3(4), bty = "n")
+
+plot(mun_MM_log, col = pal(4)[mun_MM_log$median],
+     main = "Clases de corelación (mediana)")
+plot(mun, border = "gray", add = TRUE)
+legend("topleft", legend = levels(mun_MM_log$median),
+       fill = pal(4), bty = "n")
+
+plot(mun_MM_log, col = pal(4)[mun_MM_log$mean],
+     main = "Clases de corelación (promedio)")
+plot(mun, border = "gray", add = TRUE)
+legend("topleft", legend = levels(mun_MM_log$mean),
+       fill = pal(4), bty = "n")
+
+```
