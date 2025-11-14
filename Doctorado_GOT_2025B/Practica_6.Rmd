@@ -1,0 +1,182 @@
+---
+title: "Practica 6"
+author: "Viacheslav Shalsiko"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+### Preparar el entorno
+
+```{r}
+library(sp)
+library(sf)
+sessionInfo()
+```
+
+### Leer los datos fuente
+
+```{r}
+censo <- read.csv("datos/ITER_14CSV20.csv", encoding="UTF-8")
+dim(censo)
+
+municipios <- st_read("datos/LimiteMunicipal_MGJ2012_modificadoDecreto26837.shp")
+```
+
+### Explorar las columnas de la tabla de censo (opcional)
+
+```{r}
+#str(censo)
+```
+
+### Realizar selección de información para el analisis
+
+Como parte de este proceso comprobamos que la suma de numero de habitantes despues de selección y filtrado de datos coincide con valor para totalidad del estado
+
+```{r}
+censo_selecto <- censo[,c('MUN', 'NOM_MUN', 'LOC', 'NOM_LOC', 'POBTOT')]
+#str(censo_selecto)
+poblacion_total <- censo_selecto[1,'POBTOT']
+print(poblacion_total)
+
+censo_selecto <- censo_selecto[(censo_selecto[,'MUN'] != 0) &
+                               (censo_selecto[,'LOC'] != 0) &
+                               (censo_selecto[,'LOC'] != 9998) & 
+                               (censo_selecto[,'LOC'] != 9999),]
+str(censo_selecto)
+sum(censo_selecto[,'POBTOT'])
+
+#censo_selecto_acatic <- censo_selecto[censo_selecto[,'NOM_MUN'] == 'Acatic',]
+#str(censo_selecto_acatic)
+
+#print(censo_selecto_acatic)
+```
+
+### Construir la lista de municipios
+
+```{r}
+lista_municipios <- unique(censo_selecto[,c('MUN', 'NOM_MUN')])
+#print(lista_municipios)
+```
+
+### Etiquetar localidades urbanos
+
+Aplicamos dos criterios:
+
+* Urbanas son todas localidades con 2500 personas o más
+* Urbanas son todas cabeceras municipales
+
+```{r}
+censo_selecto[,'ES_URBANO'] <- censo_selecto[,'LOC'] == 1 | censo_selecto[,'POBTOT'] >= 2500
+
+summary(censo_selecto[,'ES_URBANO'])
+```
+
+### Calcular subtotal de habitantes en localidads urbanas y no-urbanas de cada municipio
+
+```{r}
+subtotales_poblacion <- aggregate(
+                  x = censo_selecto[,'POBTOT'],
+                  by = list(censo_selecto[,'MUN'], censo_selecto[,'ES_URBANO']),
+                  FUN = sum
+)
+names(subtotales_poblacion) <- c('MUN', 'ES_URBANO', 'POBTOT')
+#print(subtotales_poblacion)
+```
+
+### Construir las tablas intermedias para población urbana y rural, y asociarlos con la lista de municipios
+
+```{r}
+subtotales_urbanos <- subtotales_poblacion[subtotales_poblacion[,'ES_URBANO'] == TRUE,]
+subtotales_rurales <- subtotales_poblacion[subtotales_poblacion[,'ES_URBANO'] == FALSE,]
+
+names(subtotales_urbanos) <- c('MUN', 'ES_URBANO', 'POBURBANA')
+names(subtotales_rurales) <- c('MUN', 'ES_URBANO', 'POBRURAL')
+
+
+poblacion_municipios <- merge(lista_municipios,
+                              subtotales_urbanos[,c('MUN','POBURBANA'),],
+                              by = 'MUN', all.x = TRUE
+)
+poblacion_municipios <- merge(poblacion_municipios,
+                              subtotales_rurales[,c('MUN','POBRURAL'),],
+                              by = 'MUN', all.x = TRUE
+)
+```
+
+### Calcular población total de municipio y proporción de población urbana
+
+```{r}
+poblacion_municipios[,'POBTOT'] <- poblacion_municipios[,'POBURBANA'] + poblacion_municipios[,'POBRURAL']
+poblacion_municipios[,'PROPORCION_URBANA'] <- round(100 * poblacion_municipios[,'POBURBANA'] / 
+                                                    poblacion_municipios[,'POBTOT'], 3)
+```
+
+### Presentar la tabla resultante
+
+```{r}
+knitr::kable(poblacion_municipios, col.names=c("Id.",
+                                               "Nombre de municipio",
+                                               "Publación urbana",
+                                               "Población rural",
+                                               "Población total",
+                                               "Proporción urbana %"))
+```
+
+### Generar histogramas de pobalción total y proporción de población urbana
+
+```{r}
+histograma_pobtot <- hist(poblacion_municipios[,'POBTOT'],
+                          main="Histograma población total",
+                          xlab="Habitantes",
+                          ylab="Frecuencia",
+                          breaks=c(0,5000,10000,50000,100000,500000,2000000),
+                          plot=FALSE)
+
+str(histograma_pobtot)
+
+par(mfcol=c(1, 2), cex=0.6)
+
+
+barplot(histograma_pobtot$counts, 
+        names.arg=c("0-5k","5-10k","10-50k","50-100k","100-\n500k",">500k"),
+        main="Histograma población total",
+        xlab="Habitantes",
+        ylab="Frecuencia")
+
+hist(poblacion_municipios[,'PROPORCION_URBANA'],
+        xlim=c(0,100),
+        main="Histograma proporción de población urbana",
+        xlab="Proporcion, %",
+        ylab="Frecuencia")
+
+```
+
+### Generar grafica de punto que demuestra la relación entre polblación total y proporación de la población urbana
+
+```{r}
+options(digits=10, scipen=20)
+
+par(cex=0.6)
+
+mi_plot <- plot(x=poblacion_municipios[,'POBTOT'],
+                y=poblacion_municipios[,'PROPORCION_URBANA'],
+                main="Relación entre población total y proporción de poblacióin urbana",
+                xlab="Población total",
+                ylab="Proporción de población urbana, %",
+                log="x", cex=1.8, pch=21, col="black", bg="lightgray")
+```
+
+### Visualizar proporción de población urbana en mapa de municipios de Jalisco
+
+```{r}
+#str(municipios)
+
+municipios_datos <- merge(municipios,
+                          poblacion_municipios,
+                          by.x="CLAVE", by.y="MUN", all=TRUE)
+#str(municipios_datos)
+
+plot(municipios_datos[,"PROPORCION_URBANA"], 
+     pal = hcl.colors(9, "YlOrRd", rev=TRUE),
+     main="Proporción de población urbana")
+```
