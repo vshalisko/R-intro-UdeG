@@ -1,0 +1,184 @@
+---
+title: "Practica 7. Analisis de tasas de crecimento para ciudades de México"
+author: "Viacheslav Shalsiko"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+### Tabla de datos con dinámica de crecimiento de población en selección de seis ciudades de México
+
+```{r construir-tabla}
+ciudad <- c("CDMX", "Guadalajara", "Zapopan", "Tlaquepaque", "Monterrey", "Puebla")
+latitud <- c(19.4316, 20.6775, 20.7216, 20.6419, 25.6714, 19.051389)
+longitud <- c(-99.1338, -103.3478, -103.3899, -103.3129, -100.3086, -98.217778)
+p1900 <- c(0.541516, 0.101208, 0.002298, 0.004346, 0.062266, 0.093521)
+p1910 <- c(0.720753, 0.119468, 0.002438, 0.004767, 0.078528, 0.096121)
+p1920 <- c(0.906063, 0.143376, 0.002592, 0.005327, 0.088479, 0.095)
+p1930 <- c(1.229576, 0.179556, 0.002982, 0.007603, 0.132577, 0.114793)
+p1940 <- c(1.757530, 0.241, 0.003685, 0.011486, 0.186, 0.138491)
+p1950 <- c(3.050442, 0.380226, 0.006144, 0.020821, 0.333422, 0.211331)
+p1960 <- c(4.870876, 0.740394, 0.019138, 0.037626, 0.596939, 0.289049)
+p1970 <- c(6.874165, 1.199391, 0.045292, 0.050760, 0.858107, 0.401603)
+p1980 <- c(8.831079, 1.626152, 0.345390, 0.133500, 1.084696, 0.772908)
+p1990 <- c(8.235744, 1.650205, 0.668323, 0.328031, 1.068996, 1.007170)
+p2000 <- c(8.605239, 1.646319, 0.919690, 0.458674, 1.110909, 1.271673)
+p2010 <- c(8.851080, 1.495, 1.142483, 0.575942, 1.136, 1.434062)
+p2020 <- c(9.23, 1.386, 1.257547, 0.650123, 1.143, 1.542232)
+
+
+## dataframe (tabla)
+tabla_poblacion <- data.frame(
+  ciudad = ciudad,
+  latitud = latitud,
+  longitud = longitud,
+  p1900 = p1900,
+  p1910 = p1910,
+  p1920 = p1920,
+  p1930 = p1930,
+  p1940 = p1940,
+  p1950 = p1950,
+  p1960 = p1960,
+  p1970 = p1970,
+  p1980 = p1980,
+  p1990 = p1990,
+  p2000 = p2000,
+  p2010 = p2010,
+  p2020 = p2020
+)
+tabla_poblacion
+dim(tabla_poblacion)
+str(tabla_poblacion)
+```
+
+### Visualización de tabla de datos con formato
+
+```{r}
+knitr::kable(tabla_poblacion[,c(1,4:16)],
+             digits=2,
+             col.names=c("Ciudad",seq(1900, 2020, 10)),
+             caption="Tabla 1. Población en centros urbanos, millones de personas")
+```
+
+### Visualizar los datos sobre población en forma de grafica de barras
+
+```{r grafica-barras, fig.width=12}
+cd_colores <- c("pink","orange","lightblue","lightgreen","yellow","tan")
+
+barplot(as.matrix(tabla_poblacion[,c(4:16)]),
+        beside=TRUE,
+        ylab="Millones de personas",
+        col=cd_colores,
+        names.arg=seq(1900, 2020, 10))
+
+legend("topleft", legend=tabla_poblacion[,1],
+       fill=cd_colores, bty="n")
+```
+
+### Calcular las tasas de crecimiento de población
+
+```{r}
+c_tasa <- function(p1, p2) {
+  tasa <- 100 * (p2 - p1) / p1
+  return(tasa)
+}
+
+t1910 <- c_tasa(tabla_poblacion[,"p1900"],tabla_poblacion[,"p1910"])
+t1920 <- c_tasa(tabla_poblacion[,"p1910"],tabla_poblacion[,"p1920"])
+t1930 <- c_tasa(tabla_poblacion[,"p1920"],tabla_poblacion[,"p1930"])
+t1940 <- c_tasa(tabla_poblacion[,"p1930"],tabla_poblacion[,"p1940"])
+t1950 <- c_tasa(tabla_poblacion[,"p1940"],tabla_poblacion[,"p1950"])
+t1960 <- c_tasa(tabla_poblacion[,"p1950"],tabla_poblacion[,"p1960"])
+t1970 <- c_tasa(tabla_poblacion[,"p1960"],tabla_poblacion[,"p1970"])
+t1980 <- c_tasa(tabla_poblacion[,"p1970"],tabla_poblacion[,"p1980"])
+t1990 <- c_tasa(tabla_poblacion[,"p1980"],tabla_poblacion[,"p1990"])
+t2000 <- c_tasa(tabla_poblacion[,"p1990"],tabla_poblacion[,"p2000"])
+t2010 <- c_tasa(tabla_poblacion[,"p2000"],tabla_poblacion[,"p2010"])
+t2020 <- c_tasa(tabla_poblacion[,"p2010"],tabla_poblacion[,"p2020"])
+
+tabla_tasas <- data.frame(
+  ciudad = ciudad,
+  latitud = latitud,
+  longitud = longitud,
+  t1910 = t1910,
+  t1920 = t1920,
+  t1930 = t1930,
+  t1940 = t1940,
+  t1950 = t1950,
+  t1960 = t1960,
+  t1970 = t1970,
+  t1980 = t1980,
+  t1990 = t1990,
+  t2000 = t2000,
+  t2010 = t2010,
+  t2020 = t2020
+)
+
+```
+
+### Visualización de tabla de datos con formato
+
+```{r}
+knitr::kable(tabla_tasas[,c(1,4:15)],
+             digits=1,
+             col.names=c("Ciudad",seq(1910, 2020, 10)),
+             caption="Tabla 2. Tasas de crecimiento en centros urbanos, %")
+```
+
+### Visualizar datos sobre las tendencias de crecimiento de población en forma gráfica
+
+```{r grafica-lineas, fig.width=12, fig.height=7}
+decadas <- seq(1910, 2020, 10)
+
+plot(x=decadas, y=tabla_tasas[1,4:15],
+     type="l", lwd=3, col=cd_colores[1],
+     ylab="tasa en %", ylim=c(-10, 170))
+lines(x=decadas, y=tabla_tasas[2,4:15], col=cd_colores[2], lwd=3)
+lines(x=decadas, y=tabla_tasas[3,4:15], col=cd_colores[3], lwd=3)
+lines(x=decadas, y=tabla_tasas[4,4:15], col=cd_colores[4], lwd=3)
+lines(x=decadas, y=tabla_tasas[5,4:15], col=cd_colores[5], lwd=3)
+lines(x=decadas, y=tabla_tasas[6,4:15], col=cd_colores[6], lwd=3)
+
+legend("topleft", legend=tabla_tasas[,1],
+       col=cd_colores, lwd=3, bty="n")
+```
+
+### Representar resumen grafico de tasas de crecimiento por decadas
+
+```{r grafica-boxplot, fig.width=12}
+boxplot(tabla_tasas[,4:15],
+        names=decadas,
+        main="Tasas de crecimiento de población por decadas",
+        ylab="%", ylim=c(-10, 180))
+```
+
+### Pruebas de hipotesis sobre existencia de diferencias estadisticas entre muestras
+
+```{r}
+t.test(tabla_tasas[,"t1910"], tabla_tasas[,"t1950"])
+t.test(tabla_tasas[,"t1910"], tabla_tasas[,"t2020"])
+t.test(tabla_tasas[,"t2010"], tabla_tasas[,"t2020"])
+t.test(tabla_tasas[,"t2000"], tabla_tasas[,"t2020"])
+t.test(tabla_tasas[,"t1990"], tabla_tasas[,"t2020"])
+t.test(tabla_tasas[,"t1980"], tabla_tasas[,"t2020"])
+t.test(tabla_tasas[,"t1970"], tabla_tasas[,"t2020"])
+t.test(tabla_tasas[,"t1960"], tabla_tasas[,"t2020"])
+
+wilcox.test(tabla_tasas[,"t1910"], tabla_tasas[,"t1950"])
+wilcox.test(tabla_tasas[,"t1910"], tabla_tasas[,"t2020"])
+wilcox.test(tabla_tasas[,"t2010"], tabla_tasas[,"t2020"])
+wilcox.test(tabla_tasas[,"t2000"], tabla_tasas[,"t2020"])
+wilcox.test(tabla_tasas[,"t1990"], tabla_tasas[,"t2020"])
+wilcox.test(tabla_tasas[,"t1980"], tabla_tasas[,"t2020"])
+wilcox.test(tabla_tasas[,"t1970"], tabla_tasas[,"t2020"])
+wilcox.test(tabla_tasas[,"t1960"], tabla_tasas[,"t2020"])
+```
+
+### Ejemplo de grafica de tasas de crecimiento en un periodo
+
+```{r grafica-boxplot-1, fig.width=9}
+barplot(tabla_tasas[,"t2020"],
+        names.arg=tabla_tasas[,1],
+        main="Crecimiento en 2010-2020",
+        ylab="%", col=cd_colores)
+abline(h=0)
+```
