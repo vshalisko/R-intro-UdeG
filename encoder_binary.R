@@ -48,10 +48,10 @@ encoder_b3 <- function(df, c_fuente, c_res1, c_res2, c_res3) {
 
 ## ejemplo de uso con la tabla mediciones que contiene la columan TA
 
-mediciones <- data.frame(TA = c(3, 2, 1, 2, 0))
+mediciones0 <- data.frame(TA = c(3, 2, 1, 2, 0))
 
-mediciones1 <- encoder_b2(mediciones, "TA", "TA_B1", "TA_B2")
-summary(mediciones1)
+mediciones1 <- encoder_b2(mediciones0, "TA", "TA_B1", "TA_B2")
+mediciones1
 
-mediciones2 <- encoder_b3(mediciones, "TA", "TA_B1", "TA_B2", "TA_B3")
-summary(mediciones2)
+mediciones2 <- encoder_b3(mediciones0, "TA", "TA_B1", "TA_B2", "TA_B3")
+mediciones2
