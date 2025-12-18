@@ -1,0 +1,261 @@
+---
+title: "Quercus mediciones 2025"
+author: "Viacheslav Shalsiko"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+### Lectura de datos
+
+```{r}
+qcastanea <- read.csv("Q_castanea mediciones_2025.csv",
+                      skip=0, encoding="UTF-8")
+qcastanea <- na.omit(qcastanea)
+dim(qcastanea)
+summary(qcastanea)
+
+qjonesii <- read.csv("Q_jonesii mediciones_2025.csv",
+                      skip=0, encoding="UTF-8")
+qjonesii <- na.omit(qjonesii)
+dim(qjonesii)
+#summary(qjonesii)
+
+#qlaeta <- read.csv("Q_laeta mediciones_2025.csv",
+qlaeta <- read.csv("Q_laeta mediciones_actualizado_2025.csv",
+                      skip=0, encoding="UTF-8")
+qlaeta <- na.omit(qlaeta)
+dim(qlaeta)
+#summary(qlaeta)
+
+qrugosa <- read.csv("Q_rugosa mediciones_2025.csv",
+                      skip=0, encoding="UTF-8")
+qrugosa <- na.omit(qrugosa)
+dim(qrugosa)
+#summary(qrugosa)
+
+#qviminea <- read.csv("Q_viminea mediciones_2025.csv",
+qviminea <- read.csv("Q_viminea mediciones_actualizado_2025.csv",                     
+                      skip=0, encoding="UTF-8")
+qviminea <- na.omit(qviminea)
+dim(qviminea)
+#summary(qviminea)
+
+crosei <- read.csv("C_rosei mediciones_2025.csv",
+                      skip=0, encoding="UTF-8")
+crosei <- na.omit(crosei)
+dim(crosei)
+#summary(crosei)
+```
+
+### Combinar datos
+
+```{r}
+especies <- c(rep("Q_castanea", nrow(qcastanea)),
+              rep("Q_jonesii", nrow(qjonesii)),
+              rep("Q_viminea", nrow(qviminea)),
+              rep("Q_laeta", nrow(qlaeta)),
+              rep("Q_rugosa", nrow(qrugosa)),
+              rep("C_rosei", nrow(crosei)))
+especies <- data.frame(especies=especies)
+mediciones <- rbind(qcastanea, qjonesii, qviminea, qlaeta, qrugosa, crosei)
+mediciones <- cbind(especies, mediciones)
+
+mediciones$especies <- as.factor(mediciones$especies)
+mediciones$Archivo <- as.factor(mediciones$Archivo)
+mediciones$Ejemplar <- as.factor(mediciones$Ejemplar)
+mediciones$Hoja <- as.factor(mediciones$Hoja)
+mediciones$FD <- as.factor(mediciones$FD)
+#mediciones$VS <- as.factor(mediciones$VS)
+mediciones$RVP <- as.factor(mediciones$RVP)
+mediciones$PVS <- as.factor(mediciones$PVS)
+mediciones$VIS <- as.factor(mediciones$VIS)
+mediciones$AVSA <- as.factor(mediciones$AVSA)
+mediciones$AVSS <- as.factor(mediciones$AVSS)
+mediciones$AVSB <- as.factor(mediciones$AVSB)
+mediciones$CVT <- as.factor(mediciones$CVT)
+mediciones$V4 <- as.factor(mediciones$V4)
+mediciones$V5 <- as.factor(mediciones$V5)
+mediciones$V6 <- as.factor(mediciones$V6)
+mediciones$FA <- as.factor(mediciones$FA)
+mediciones$TA <- as.factor(mediciones$TA)
+mediciones$A <- as.factor(mediciones$A)
+mediciones$RVS <- as.factor(mediciones$RVS)
+mediciones$DD <- as.factor(mediciones$DD)
+mediciones$ADVS <- as.factor(mediciones$ADVS)
+mediciones$CVM <- as.factor(mediciones$CVM)
+mediciones$EVS <- as.factor(mediciones$EVS)
+mediciones$RVSD <- as.factor(mediciones$RVSD)
+mediciones$M <- as.factor(mediciones$M)
+
+
+encoder_b2 <- function(df, c_fuente, c_res1, c_res2) {
+  ## df - tabla
+  ## c_fuente - nombre de la columna a recodificar
+  ## c_res1 - nombre de la primera columna binaria
+  ## c_res2 - nombre de la segunda columna binaria
+  ## recodificación:
+  ## 0 -> 0, 0
+  ## 1 -> 1, 0
+  ## 2 -> 0, 1
+  ## 3 -> 1, 1
+  df[,c_res1] <- ifelse(df[,c_fuente] == 1 | df[,c_fuente] == 3, 1, 0)
+  df[,c_res2] <- ifelse(df[,c_fuente] == 2 | df[,c_fuente] == 3, 1, 0)
+  return(df)
+}
+
+
+encoder_b3 <- function(df, c_fuente, c_res1, c_res2, c_res3) {
+    ## df - tabla
+  ## c_fuente - nombre de la columna a recodificar
+  ## c_res1 - nombre de la primera columna binaria
+  ## c_res2 - nombre de la segunda columna binaria
+  ## c_res2 - nombre de la tercera columna binaria
+  ## recodificación:
+  ## 0 -> 0, 0, 0
+  ## 1 -> 1, 0, 0
+  ## 2 -> 0, 1, 0
+  ## 3 -> 0, 0, 1
+  ## 4 -> 1, 1, 0
+  ## 5 -> 1, 0, 1
+  ## 6 -> 0, 1, 1
+  ## 7 -> 1, 1, 1
+  df[,c_res1] <- ifelse(df[,c_fuente] == 1 | 
+                        df[,c_fuente] == 4 |
+                        df[,c_fuente] == 5 |
+                        df[,c_fuente] == 7, 1, 0)
+  df[,c_res2] <- ifelse(df[,c_fuente] == 2 | 
+                        df[,c_fuente] == 4 |
+                        df[,c_fuente] == 6 |
+                        df[,c_fuente] == 7, 1, 0)
+  df[,c_res3] <- ifelse(df[,c_fuente] == 3 | 
+                        df[,c_fuente] == 5 |
+                        df[,c_fuente] == 6 |
+                        df[,c_fuente] == 7, 1, 0)
+  return(df)
+}
+
+dim(mediciones)
+summary(mediciones)
+
+
+medicionesA <- data.frame(TA = c(3, 2, 1, 2, 0))
+
+mediciones1 <- encoder_b2(medicionesA, "TA", "TA_B1", "TA_B2")
+mediciones1
+
+mediciones2 <- encoder_b3(medicionesA, "TA", "TA_B1", "TA_B2", "TA_B3")
+mediciones2
+
+
+```
+
+```{r}
+write.csv(mediciones, file="tabla_combinada.csv",
+          row.names = FALSE)
+```
+
+
+### Graficas
+
+
+```{r fig.height = 7}
+print(unique(mediciones$especies))
+print(levels(mediciones$especies))
+
+plot(L ~ W, data=mediciones, col = especies, pch=16)
+legend("bottomright", legend=levels(mediciones$especies),
+        col = 1:nlevels(mediciones$especies), pch=16, bty="n")
+
+plot(L ~ W, log = "xy",
+     data=mediciones, col = especies, pch=16)
+legend("bottomright", legend=levels(mediciones$especies),
+        col = 1:nlevels(mediciones$especies), pch=16, bty="n")
+
+plot(L ~ AVML, data=mediciones, col = especies, pch=16)
+legend("bottomright", legend=levels(mediciones$especies),
+        col = 1:nlevels(mediciones$especies), pch=16, bty="n")
+
+plot(W ~ AVML, data=mediciones, col = especies, pch=16)
+legend("bottomright", legend=levels(mediciones$especies),
+        col = 1:nlevels(mediciones$especies), pch=16, bty="n")
+
+plot(LWR ~ AVML, data=mediciones, col = especies, pch=16)
+legend("bottomright", legend=levels(mediciones$especies),
+        col = 1:nlevels(mediciones$especies), pch=16, bty="n")
+
+plot(LA ~ AVML, data=mediciones, col = especies, pch=16)
+legend("bottomright", legend=levels(mediciones$especies),
+        col = 1:nlevels(mediciones$especies), pch=16, bty="n")
+
+plot(LWR ~ LA, data=mediciones, col = especies, pch=16)
+legend("bottomright", legend=levels(mediciones$especies),
+        col = 1:nlevels(mediciones$especies), pch=16, bty="n")
+
+plot(LWR ~ LA, log = "xy",
+     data=mediciones, col = especies, pch=16)
+legend("bottomright", legend=levels(mediciones$especies),
+        col = 1:nlevels(mediciones$especies), pch=16, bty="n")
+
+plot(L ~ LA, data=mediciones, col = especies, pch=16)
+legend("bottomright", legend=levels(mediciones$especies),
+        col = 1:nlevels(mediciones$especies), pch=16, bty="n")
+
+plot(W ~ LA, data=mediciones, col = especies, pch=16)
+legend("bottomright", legend=levels(mediciones$especies),
+        col = 1:nlevels(mediciones$especies), pch=16, bty="n")
+
+plot(L ~ NVS, data=mediciones, col = especies, pch=16)
+legend("bottomright", legend=levels(mediciones$especies),
+        col = 1:nlevels(mediciones$especies), pch=1, bty="n")
+
+plot(W ~ NVS, data=mediciones, col = especies, pch=16)
+legend("bottomright", legend=levels(mediciones$especies),
+        col = 1:nlevels(mediciones$especies), pch=16, bty="n")
+
+plot(LWR ~ NVS, data=mediciones, col = especies, pch=16)
+legend("bottomright", legend=levels(mediciones$especies),
+        col = 1:nlevels(mediciones$especies), pch=16, bty="n")
+
+plot(LWR ~ NVS, log = "y",
+     data=mediciones, col = especies, pch=16)
+legend("bottomright", legend=levels(mediciones$especies),
+        col = 1:nlevels(mediciones$especies), pch=16, bty="n")
+
+plot(LA ~ NVS, data=mediciones, col = especies, pch=16)
+legend("bottomright", legend=levels(mediciones$especies),
+        col = 1:nlevels(mediciones$especies), pch=16, bty="n")
+
+plot(AVML ~ NVS, data=mediciones, col = especies, pch=16)
+legend("bottomright", legend=levels(mediciones$especies),
+        col = 1:nlevels(mediciones$especies), pch=16, bty="n")
+```
+
+# ADCP
+
+```{r}
+library(adegenet)
+find.clusters(mediciones[,c("L","W","LWR","LA","AVML","VS","NVS")], n.pca = 4, max.n.clust = 30, stat = "BIC")
+find.clusters(mediciones[,c("L","W","LWR","LA","AVML","VS","NVS")], n.pca = 4, max.n.clust = 30, stat = "AIC")
+
+mi_dapc <- dapc(mediciones[,c("L","W","LWR","LA","AVML","VS","NVS")], mediciones$especies,
+     n.pca=4, n.da=1)
+mi_dapc
+scatter(mi_dapc, legend = TRUE, bty = "n")
+loadingplot(mi_dapc$var.contr)
+optim.a.score(mi_dapc, smart = FALSE, n.sim = 50)
+```
+
+```{r}
+mi_dapc2 <- dapc(mediciones[,c("L","W","LWR","LA","AVML","VS","NVS")], mediciones$especies,
+     n.pca=4, n.da=3)
+mi_dapc2
+scatter(mi_dapc2, legend = TRUE, bty = "n",
+        ratio.da=0.20, inset.solid=0.5, cex=0.8, solid=0.6, cex.lab=0.6)
+scatter(mi_dapc2, xax=1, yax=3, legend = TRUE, bty = "n",
+        ratio.da=0.20, inset.solid=0.5, cex=0.8, solid=0.6, cex.lab=0.6)
+scatter(mi_dapc2, xax=2, yax=3, legend = TRUE, bty = "n",
+        ratio.da=0.20, inset.solid=0.5, cex=0.8, solid=0.6, cex.lab=0.6)
+loadingplot(mi_dapc2$var.contr)
+optim.a.score(mi_dapc2, smart = FALSE, n.sim = 50)
+```
+
