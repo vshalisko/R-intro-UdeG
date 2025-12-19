@@ -1,0 +1,181 @@
+---
+title: "Quercus mediciones 2025 categoricas"
+author: "Viacheslav Shalsiko"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+### Lectura de datos
+
+```{r}
+mediciones <- read.csv("tabla_recodificada_baseR_20251203.csv",
+                      skip=0, encoding="UTF-8")
+mediciones <- na.omit(mediciones)
+dim(mediciones)
+```
+
+### Dar formato a los datos
+
+```{r}
+quant_vars <- c("L","W","LWR","LA","AVML","NVS")
+bin_vars <- c("FD_B1","FD_B2","VS_B1","VS_B2","VS_B3","VS_B4",
+              "PVS_B1","PVS_B2","VIS_B1","VIS_B2","AVSA_B1","AVSA_B2",
+              "AVSS_B1","AVSS_B2","AVSB_B1","AVSB_B2","CVT_B1","CVT_B2",
+              "CVT_B3","CVT_B4","V4_","V5_","V6_","A_",
+              "TA_B1","TA_B2","TA_B3","RVS_B1","RVS_B2",
+              "DD_B1","DD_B2","DD_B3","RVSD_B1","RVSD_B2",
+              "M_B1","M_B2")
+cat_vars <- c("RVP_","ADVS_","GVM_","FA_","EVS_")
+grupo_var <- c("especies")
+
+## Variables por excluir PVS_B1, AVSS_B1, AVSS_B2, CVT_B4, V4_, V5_, V6_, TA_B3, DD_B3
+bin_vars_ok <- c("FD_B1","FD_B2","VS_B1","VS_B2","VS_B3","VS_B4",
+              "PVS_B2","VIS_B1","VIS_B2","AVSA_B1","AVSA_B2",
+              "AVSB_B1","AVSB_B2","CVT_B1","CVT_B2",
+              "CVT_B3","A_",
+              "TA_B1","TA_B2","RVS_B1","RVS_B2",
+              "DD_B1","DD_B2","RVSD_B1","RVSD_B2",
+              "M_B1","M_B2")
+
+mediciones[quant_vars] <- lapply(mediciones[quant_vars], as.numeric)
+mediciones[grupo_var] <- lapply(mediciones[grupo_var], as.factor)
+mediciones[cat_vars] <- lapply(mediciones[cat_vars], as.factor)
+mediciones[bin_vars] <- lapply(mediciones[bin_vars], as.factor)
+
+rownames(mediciones) <- make.unique(as.character(seq_len(nrow(mediciones))))
+
+## determinar si existen duplicados en nombres de las filas
+rownames(mediciones)[duplicated(rownames(mediciones))]
+
+summary(mediciones)
+```
+
+## Explorar la normalidad de variables cuantitativas
+
+```{r}
+par(mfrow = c(2, 4))
+for (v in quant_vars) {
+  qqnorm(mediciones[[v]], main = v)
+  qqline(mediciones[[v]])
+}
+```
+
+## Determinar las frecuencias de estados en variables cualitativas
+
+```{r}
+bin_freq <- sapply(mediciones[bin_vars_ok], function(x) table(x) / length(x))
+bin_freq
+#str(bin_freq)
+#knitr::kable(bin_freq)
+```
+
+## Analisis FAMD
+
+```{r FAMD}
+library(FactoMineR)
+library(factoextra)
+
+res.famd <- FAMD(
+  mediciones[,c(quant_vars, bin_vars_ok, cat_vars)],
+  ncp = 10,
+  graph = TRUE
+)
+
+fviz_screeplot(res.famd, addlabels = TRUE)
+
+# Contribución total
+fviz_contrib(res.famd, choice = "var", axes = 1)
+fviz_contrib(res.famd, choice = "var", axes = 2)
+fviz_contrib(res.famd, choice = "var", axes = 3)
+fviz_contrib(res.famd, choice = "var", axes = 4)
+
+# Separar por tipo
+res.famd$var$contrib
+
+#str(res.famd)
+
+```
+
+## Guardar coordenadas de puntos en el analisis FAMD en otra tabla
+
+```{r}
+mediciones_famd <- cbind(
+        mediciones[,c("especies","Archivo","Ejemplar","Hoja")], 
+        res.famd$ind$coord)
+mediciones_famd[,"especies"] <- factor(mediciones[,"especies"], levels=levels(mediciones[,"especies"]))
+knitr::kable(mediciones_famd[1:10,])
+```
+
+## Visualizar los resultados de FAMD
+
+```{r FAMD-result, fig.width=10, fig.height=8}
+
+fviz_ellipses(X=res.famd, 
+              habillage=mediciones[,grupo_var],
+              axes=c(1,2), geom = "point")
+
+fviz_ellipses(X=res.famd, 
+              habillage=mediciones[,grupo_var],
+              axes=c(1,3), geom = "point")
+
+fviz_ellipses(X=res.famd, 
+              habillage=mediciones[,grupo_var],
+              axes=c(1,4), geom = "point")
+
+fviz_ellipses(X=res.famd, 
+              habillage=mediciones[,grupo_var],
+              axes=c(2,3), geom = "point")
+
+fviz_ellipses(X=res.famd, 
+              habillage=mediciones[,grupo_var],
+              axes=c(2,4), geom = "point")
+
+fviz_ellipses(X=res.famd, 
+              habillage=mediciones[,grupo_var],
+              axes=c(3,4), geom = "point")
+
+#fviz_famd_ind(
+#  res.famd,
+#  habillage = mediciones[[grupo_var]],
+#  addEllipses = TRUE,
+#  ellipse.level = 0.95,
+#  repel = TRUE
+#)
+```
+
+## DAPC con datos de FAMD
+
+```{r}
+library(adegenet)
+find.clusters(mediciones_famd[,5:14], n.pca = 10, max.n.clust = 30, stat = "BIC")
+find.clusters(mediciones_famd[,5:14], n.pca = 10, max.n.clust = 30, stat = "AIC")
+```
+
+```{r DAPC-1}
+mi_dapc <- dapc(mediciones_famd[,5:14], mediciones_famd[,1],
+     n.pca=10, n.da=1)
+mi_dapc
+scatter(mi_dapc, legend = TRUE, bty = "n")
+loadingplot(mi_dapc$var.contr)
+optim.a.score(mi_dapc, smart = FALSE, n.sim = 50)
+```
+
+```{r DAPC-4}
+mi_dapc2 <- dapc(mediciones_famd[,5:14], mediciones_famd[,1],
+     n.pca=10, n.da=4)
+mi_dapc2
+scatter(mi_dapc2, legend = TRUE, bty = "n",
+        ratio.da=0.20, inset.solid=0.5, cex=0.8, solid=0.6, cex.lab=0.6)
+scatter(mi_dapc2, xax=1, yax=3, legend = TRUE, bty = "n",
+        ratio.da=0.20, inset.solid=0.5, cex=0.8, solid=0.6, cex.lab=0.6)
+scatter(mi_dapc2, xax=1, yax=4, legend = TRUE, bty = "n",
+        ratio.da=0.20, inset.solid=0.5, cex=0.8, solid=0.6, cex.lab=0.6)
+scatter(mi_dapc2, xax=2, yax=3, legend = TRUE, bty = "n",
+        ratio.da=0.20, inset.solid=0.5, cex=0.8, solid=0.6, cex.lab=0.6)
+scatter(mi_dapc2, xax=2, yax=4, legend = TRUE, bty = "n",
+        ratio.da=0.20, inset.solid=0.5, cex=0.8, solid=0.6, cex.lab=0.6)
+scatter(mi_dapc2, xax=3, yax=4, legend = TRUE, bty = "n",
+        ratio.da=0.20, inset.solid=0.5, cex=0.8, solid=0.6, cex.lab=0.6)
+loadingplot(mi_dapc2$var.contr)
+optim.a.score(mi_dapc2, smart = FALSE, n.sim = 50)
+```
