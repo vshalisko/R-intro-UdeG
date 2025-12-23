@@ -5,6 +5,13 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
+```{r}
+library(FactoMineR)
+library(factoextra)
+library(adegenet)
+```
+
+
 ### Lectura de datos
 
 ```{r}
@@ -71,10 +78,7 @@ bin_freq
 
 ## Analisis FAMD
 
-```{r FAMD}
-library(FactoMineR)
-library(factoextra)
-
+```{r FAMD, cache=TRUE}
 res.famd <- FAMD(
   mediciones[,c(quant_vars, bin_vars_ok, cat_vars)],
   ncp = 10,
@@ -146,12 +150,11 @@ fviz_ellipses(X=res.famd,
 ## DAPC con datos de FAMD
 
 ```{r}
-library(adegenet)
 find.clusters(mediciones_famd[,5:14], n.pca = 10, max.n.clust = 30, stat = "BIC")
 find.clusters(mediciones_famd[,5:14], n.pca = 10, max.n.clust = 30, stat = "AIC")
 ```
 
-```{r DAPC-1}
+```{r DAPC-1, cache=TRUE}
 mi_dapc <- dapc(mediciones_famd[,5:14], mediciones_famd[,1],
      n.pca=10, n.da=1)
 mi_dapc
@@ -160,7 +163,7 @@ loadingplot(mi_dapc$var.contr)
 optim.a.score(mi_dapc, smart = FALSE, n.sim = 50)
 ```
 
-```{r DAPC-4}
+```{r DAPC-4, cache=TRUE}
 mi_dapc2 <- dapc(mediciones_famd[,5:14], mediciones_famd[,1],
      n.pca=10, n.da=4)
 mi_dapc2
@@ -179,3 +182,15 @@ scatter(mi_dapc2, xax=3, yax=4, legend = TRUE, bty = "n",
 loadingplot(mi_dapc2$var.contr)
 optim.a.score(mi_dapc2, smart = FALSE, n.sim = 50)
 ```
+
+```{r DAPC-membership, fig.width=10}
+compoplot(mi_dapc2)
+```
+
+```{r xvalDAPC}
+xval_dapc <- xvalDapc(mediciones_famd[,5:14], mediciones_famd[,1],
+     n.pca.max=10, n.da=4, n.rep=10)
+xval_dapc
+#plot(xval_dapc)
+```
+
