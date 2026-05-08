@@ -1,0 +1,254 @@
+---
+title: "Modelo Alonso-Mills, ensayo para praactica 2026"
+author: "Viacheslav Shalsiko"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(deSolve)
+library(ggplot2)
+```
+
+# Definición de parámetros
+
+```{r}
+
+parameters <- c(
+  tau   = 0.0015,     # costo de transporte por metro
+  gamma = 3e-7,       # intensidad de congestión
+  Y     = 200,        # ingreso
+  alpha = 0.75,       # preferencia por consumo no-vivienda
+  C     = 50,         # costo de construcción
+  beta  = 1.3,        # convexidad altura
+  
+  # Desplazamiento del centro: sector comercial
+  A     = 250,        # nivel renta comercial
+  delta = 0.00015,     # decaimiento espacial
+  
+  # Sector agricola - precio minimo
+  B = 20              # precio del terreno de cultivo
+)
+
+# Condición de renta de suelo en CBD (d = 0)
+initial_state_values <- c(
+  R = 200
+)
+
+```
+
+## Dominio espacial (vector de distancias)
+
+```{r}
+distance_max <- 20000
+distanceCBD <- seq(0, distance_max, by = 1)
+```
+
+## Modelo
+
+```{r}
+alonso_model <- function(d, state, parameters) {
+  
+  R <- state["R"]
+  
+  tau   <- parameters["tau"]
+  Y     <- parameters["Y"]
+  C     <- parameters["C"]
+  alpha <- parameters["alpha"]
+  beta  <- parameters["beta"]
+  A     <- parameters["A"]
+  gamma <- parameters["gamma"]
+  delta <- parameters["delta"]
+  B <- parameters["B"]
+  
+  # Precio de transporte acumulado
+  T <- tau * d + gamma * d^2
+  
+  # Altura de edificios residenciales (se calcula desde R)
+  h <- (R / ((beta - 1) * C))^(1 / beta)
+  
+  # Precio de vivienda
+  p <- C * beta * h^(beta - 1)
+  
+  # Presupuesto disponible (Ingreso - Transporte)
+  Y_disp <- max(Y - T, 1e-6)
+  
+  # Consumo en vivienda y transporte
+  q <- (1 - alpha) * Y_disp / p
+  
+  # Evitar valores negativos o extremos de consumo
+  q <- max(q, 1e-6)
+  
+  # Costo marginal transporte
+  # Derivada del costo de transporte (Costo convexo - congestión)
+  dT_dd <- tau + 2 * gamma * d
+  
+  # Gradiente de renta (teórico) con costo de transporte
+  #dR <- - (dT_dd * R) / ((1 - alpha) * Y)
+  
+  # Gradiente de renta (ecuacion diferencial EDO)
+  dR_res <- - dT_dd / q
+  
+  # Renta en sectores comercial y agricolo
+  R_com <- A * exp(-delta * d)
+  R_agr <- B
+  
+  # Regla de uso de suelo para caclulo de dR
+  if (R <= R_com) {
+    # Zona comercial - no existe respuesta a la ecuación (se mantienen el mismo valor)
+    dR <- 0
+  } else {
+    # Zona residencial - existe respuesta a la ecuacion
+    dR <- dR_res
+  }
+
+  return(list(c(dR)))
+}
+
+# Resolver EDO
+output <- as.data.frame(ode(
+  y = initial_state_values,
+  times = distanceCBD,
+  func = alonso_model,
+  parms = parameters,
+  method = "rk4"
+))
+
+```
+
+```{r}
+summary(output)
+```
+
+## Calculo de valores en funcion de d y R
+
+```{r}
+# Renombrar variable de distancia
+names(output)[1] <- "d"
+
+# Ingreso (constante)
+output$Y <- parameters["Y"]
+
+# Transporte (T)
+output$T <- parameters["tau"] * output$d + 
+            parameters["gamma"] * output$d^2
+
+# Ingreso disponible (Y - T)
+output$Y_net <- parameters["Y"] - output$T
+
+# Consumo de vivienda (q) - espacio habitable consumido por el agente económico
+# Puede ser proporcional a tamaño de vivinda en m2 o algun otro parámetro que mide 
+# la cantidad de servicio residencial consumido por un usuario
+output$q <- (1 - parameters["alpha"]) * output$Y_net / output$R
+
+# Consumo en otros bienes
+output$C_other <- parameters["alpha"] * output$Y_net
+
+# Altura de edificios residenciales
+output$h_res <- (output$R / ((parameters["beta"] - 1) * parameters["C"]))^(1 / parameters["beta"])
+
+# Precio de vivienda
+output$PH <- parameters["C"] * parameters["beta"] * output$h_res^(parameters["beta"] - 1)
+
+# Densidad de habitantes
+output$n_res <- output$h_res / output$q
+
+#Utilidad (según Cobb-Douglas)
+alpha <- parameters["alpha"]
+output$U_calc <- (output$C_other^alpha) * (output$q^(1 - alpha))
+
+# Normalizar utilidad (para explorar la estabilidad del modelo)
+# Nota: la utilidad normalizada debe ser cercana a 1 en todos d
+output$U_norm <- output$U_calc / output$U_calc[1]
+
+# Efecto de renta comercial
+output$R_comm <- parameters["A"] * exp(-parameters["delta"] * output$d)
+
+# uso de suelo: 1 = residencial, 0 = comercial
+output$residential <- ifelse(output$R >= output$R_comm & output$R > parameters["B"], 1, 0)
+
+# renta efectiva
+output$R_eff <- pmax(output$R, output$R_comm, parameters["B"])
+
+# densidad final
+output$n <- ifelse(output$residential == 1, output$n_res, 0)
+
+# altura final
+output$h <- ifelse(output$residential == 1, output$h_res, 0)
+
+# Tabla final
+knitr::kable(output[seq(1,distance_max,1000),])
+
+```
+
+## Presentar graficos
+
+```{r}
+# Renta del suelo
+g1 <- ggplot(output, aes(x = d, y = R)) +
+  geom_line() + ylim(0, 300) + 
+  labs(title = "Renta del suelo residencial R(d)", x = "Distancia CBD", y = "R")
+
+g1e <- ggplot(output, aes(x = d, y = R_eff)) +
+  geom_line() + ylim(0, 300) +
+  labs(title = "Renta del suelo efectiva R_eff(d)", x = "Distancia CBD", y = "R")
+
+# Precio de vivienda
+g2 <- ggplot(output, aes(x = d, y = PH)) +
+  geom_line() +
+  labs(title = "Precio de vivienda PH(d)", x = "Distancia CBD", y = "PH")
+
+# Consumo de vivienda
+g2e <- ggplot(output, aes(x = d, y = q)) +
+  geom_line() +
+  labs(title = "Consumo relativo de vivienda o del espacio residencial q(d)", x = "Distancia CBD", y = "q")
+
+# Transporte
+g3 <- ggplot(output, aes(x = d, y = T)) +
+  geom_line() +
+  labs(title = "Costo de transporte T(d)", x = "Distancia CBD", y = "T")
+
+# Ingreso disponible (Y net)
+g4 <- ggplot(output, aes(x = d, y = Y_net)) +
+  geom_line() +
+  labs(title = "Ingreso disponible (restando transporte)", x = "Distancia CBD", y = "Y net")
+
+# Utilidad normalizada
+g5 <- ggplot(output, aes(x = d, y = U_norm)) +
+  geom_line() + ylim(0.8, 1.2) + 
+  labs(title = "Utilidad (normalizada)", x = "Distancia CBD", y = "U")
+
+# Identificación de la zona residencial
+g6 <- ggplot(output, aes(x = d, y = residential)) + 
+  geom_line() + 
+  labs(title = "Identificación de la zona residencial", x = "Distancia CBD", y = "Residencial (si/no)")
+
+# Altura de efdificios residenciales
+g7 <- ggplot(output, aes(x = d, y = h)) + 
+  geom_line() + 
+  labs(title = "Altura de edificios residenciales", x = "Distancia CBD", y = "h")
+
+# Densidad de población esperada
+g8 <- ggplot(output, aes(x = d, y = n)) + 
+  geom_line() + 
+  labs(title = "Densidad poblacional (con desplazamiento del centro)", x = "Distancia CBD", y = "Densidad")
+
+# Consumo en otros bienes
+g9 <- ggplot(output, aes(x = d, y = C_other)) + 
+  geom_line() + 
+  labs(title = "Consumo en otos bienes", x = "Distancia CBD", y = "Consumo")
+
+# Mostrar gráficos
+print(g1)
+print(g1e)
+print(g2)
+print(g2e)
+print(g3)
+print(g4)
+print(g5)
+print(g6)
+print(g7)
+print(g8)
+print(g9)
+```
+
