@@ -1,0 +1,112 @@
+---
+title: "Practica 9"
+author: "Viacheslav Shalsiko"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## Preparar el entorno de trabajo
+
+```{r}
+library(sp)
+library(sf)
+library(raster)
+library(foreign)
+sessionInfo()
+getwd()
+```
+
+## Leer los archivos de datos
+
+```{r}
+temper <- read.dbf('datos/Temp.dbf')
+dim(temper)
+head(temper)
+str(temper)
+
+estaciones <- st_read('datos/Estaciones_SMN_alt_ok.shp')
+
+mde <- raster('datos/MDE_occidente_500m_float_GEO.tif')
+names(mde) <- 'MDE'
+mde
+```
+
+## Visualicion
+
+```{r fig.width = 8, fig.height = 10}
+plot(mde)
+plot(estaciones, add=TRUE, pch=5, cex=0.5, col='red')
+```
+
+## Preparar tabla que combina puntos SMN con valores de temperatura
+
+```{r}
+estaciones_temp <- merge(estaciones, temper, by='NUMERO_DE_')
+head(estaciones_temp)
+filtro <- estaciones_temp$TOCT == 0
+estaciones_temp <- estaciones_temp[!filtro,]
+```
+
+## Visualizar datos de temperatura de octubre (TOCT)
+
+```{r}
+plot(estaciones_temp[,c('TOCT')])
+```
+
+## Visualizar la asociación entre valores de TOCT y la elevación (Z_FIN)
+
+```{r}
+plot(TOCT ~ Z_FIN, data = estaciones_temp)
+```
+
+## Construir un modelo lineal de relacion entre temperatura y elevación
+
+```{r}
+modelo_1 <- lm(TOCT ~ Z_FIN, data = estaciones_temp)
+summary(modelo_1)
+```
+
+## Dibujar grafico del modelo
+
+```{r}
+plot(TOCT ~ Z_FIN, data = estaciones_temp)
+z <- seq(0, 4000, 1)
+t <- predict(modelo_1, data.frame('Z_FIN' = z))
+lines(x=z, y=t, col='red')
+```
+
+## Construir un modelo de temperatura a partir de dos variables
+
+```{r}
+estaciones_temp$LAT <- st_coordinates(estaciones_temp)[,'Y']
+modelo_2 <- lm(TOCT ~ Z_FIN + LAT, data = estaciones_temp)
+summary(modelo_2)
+```
+
+## Construir un modelocuadratico de temperatura a partir de dos variables
+
+```{r}
+modelo_3 <- lm(TOCT ~ I(Z_FIN^2) + Z_FIN + LAT, data = estaciones_temp)
+summary(modelo_3)
+```
+
+## Dibujar grafico del modelo 3
+
+```{r}
+plot(TOCT ~ Z_FIN, data = estaciones_temp)
+t3 <- predict(modelo_3, data.frame('Z_FIN' = z, 'LAT' = 20.5))
+lines(x=z, y=t3, col='red')
+```
+
+## Realizar predicción de temperatura con modelo 3 en raster
+
+```{r}
+r_lat <- init(mde, "y")
+r_alt_lat <- stack(mde, r_lat)
+names(r_alt_lat) <- c("Z_FIN", "LAT")
+r_alt_lat
+
+preciccion_TOCT <- predict(r_alt_lat, modelo_3)
+preciccion_TOCT
+plot(preciccion_TOCT)
+```
