@@ -1,0 +1,450 @@
+---
+title: "Quercus mediciones 2025 categoricas + fosiles"
+author: "Viacheslav Shalsiko"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## Variante de script que incluye el especimen CP-CEZUG-00018 de Q. aff. laeta (parte y contraparte)
+
+
+```{r bibliotecas}
+library(FactoMineR)
+library(factoextra)
+library(adegenet)
+library(ggplot2)
+library(patchwork)
+```
+
+
+### Lectura de datos
+
+```{r datos-fuente}
+mediciones_orig <- read.csv("tabla_recodificada_baseR_ver20260430.csv",
+                      skip=0, encoding="UTF-8")
+mediciones_orig <- na.omit(mediciones_orig)
+dim(mediciones_orig)
+
+mediciones_original_especies_factores <- as.factor(mediciones_orig[,"especies"])
+summary(mediciones_original_especies_factores)
+
+fosiles_MVT <- read.csv("Fosil_Q_laeta_datos_simulados.csv")
+#fosiles_MVT <- na.omit(fosiles_MVT)
+dim(fosiles_MVT)
+
+fosiles_MVT <- fosiles_MVT[c(1:64),]
+
+especies_colors <- c("blue","orange","gray","green","yellow","red")
+
+fosiles_colors <- rep("green", times=64)
+
+print(fosiles_MVT)
+```
+
+### Dar formato a los datos
+
+```{r formato-datos}
+quant_vars <- c("L","W","LWR","LA","AVML","NVS")
+bin_vars <- c("FD_B1","FD_B2","VS_B1","VS_B2","VS_B3","VS_B4",
+              "PVS_B1","PVS_B2","VIS_B1","VIS_B2","AVSA_B1","AVSA_B2",
+              "AVSS_B1","AVSS_B2","AVSB_B1","AVSB_B2","CVT_B1","CVT_B2",
+              "CVT_B3","CVT_B4","V4_","V5_","V6_",
+              "TA_B1","TA_B2","TA_B3","RVS_B1","RVS_B2",
+              "DD_B1","DD_B2","DD_B3","RVSD_B1","RVSD_B2",
+              "M_B1","M_B2")
+cat_vars <- c("A_","RVP_","ADVS_","GVM_","FA_","EVS_")
+grupo_var <- c("especies")
+
+## Variables por excluir PVS_B1, AVSS_B1, AVSS_B2, CVT_B4, V4_, V5_, V6_, TA_B3, DD_B3
+bin_vars_ok <- c("FD_B1","FD_B2","VS_B1","VS_B2","VS_B3","VS_B4",
+              "PVS_B2","VIS_B1","VIS_B2","AVSA_B1","AVSA_B2",
+              "AVSB_B1","AVSB_B2","CVT_B1","CVT_B2",
+              "CVT_B3","A_",
+              "TA_B1","TA_B2","RVS_B1","RVS_B2",
+              "DD_B1","DD_B2","RVSD_B1","RVSD_B2",
+              "M_B1","M_B2")
+```
+
+```{r formato-datos-paso-2}
+entrenamiento_len <- dim(mediciones_orig)[1]
+fosiles_len <- dim(fosiles_MVT)[1]
+
+print(paste("Registros de entrenamiento:", entrenamiento_len))
+print(paste("Registros de fosiles:", fosiles_len))
+
+## Se agrega un duplicado de la última línea, porque de otra manera no se logra realizar analisis con ind.sup
+mediciones <- rbind(mediciones_orig, fosiles_MVT, tail(mediciones_orig, n=2))
+#mediciones <- rbind(mediciones_orig, fosiles_MVT)
+
+tail(mediciones, n=9)
+
+mediciones[quant_vars] <- lapply(mediciones[quant_vars], as.numeric)
+mediciones[grupo_var] <- lapply(mediciones[grupo_var], as.factor)
+mediciones[cat_vars] <- lapply(mediciones[cat_vars], as.factor)
+mediciones[bin_vars] <- lapply(mediciones[bin_vars], as.factor)
+
+mediciones_len <- dim(mediciones)[1]
+print(paste("Registros combinados entrenamiento + fosiles + 2 linea duplicada:", mediciones_len))
+
+rownames(mediciones) <- make.unique(as.character(seq_len(nrow(mediciones))))
+
+tail(mediciones, n=9)
+
+## determinar si existen duplicados en nombres de las filas
+print("Léneas con nombres duplicados:")
+rownames(mediciones)[duplicated(rownames(mediciones))]
+
+ind_sup_low <- entrenamiento_len             # posicion inicial del conjunto complementario
+ind_sup_high <- entrenamiento_len + fosiles_len - 1    # posición final del conjunto complementario
+ind_sup_low1 <- ind_sup_low + 1               # posicion inicial del conjunto complementario + 1
+ind_sup_high1 <- ind_sup_high + 1             # posición final del conjunto complementario + 1
+
+dim(mediciones)
+```
+
+```{r formato-datos-paso-3}
+## tabla de fosiles recodificada con factores (considerando que hay que quitar la linea duplicada)
+fosiles_recode <- tail(mediciones, n=fosiles_len+2)
+fosiles_recode <- head(fosiles_recode, n=fosiles_len)
+## tabla de mediciones recodificada con factores
+## nota: en caso de usar sup.ind de FAMD los fosiles deben estar al final de la tabla de mediciones
+#mediciones <- head(mediciones, n=entrenamiento_len)
+summary(mediciones)
+summary(fosiles_recode)
+```
+
+## Explorar la normalidad de variables cuantitativas
+
+```{r normalidad}
+par(mfrow = c(2, 4))
+for (v in quant_vars) {
+  qqnorm(mediciones[[v]], main = v)
+  qqline(mediciones[[v]])
+}
+```
+
+## Determinar las frecuencias de estados en variables cualitativas
+
+```{r frecuencias}
+bin_freq <- sapply(mediciones[bin_vars_ok], function(x) table(x) / length(x))
+bin_freq
+#str(bin_freq)
+#knitr::kable(bin_freq)
+```
+
+# Analisis FAMD (análisis factorial de datos mixtos)
+### Proposito es construir un conjunto de datos donde variables cualitativos se converten en cuentitativos y se reduce el número de dimensiones
+
+Nota: Los datos se subdividen en el conjunto principal (entrenamiento) y los registos complementarios (suplementary observations or individuals), los ultimos no se usan para realizar FAMD, solo se agregan como observaciones adicionales y se proyecton al espacio construido de forma complementaria
+El indice que usa FAMD inicia en 0 y termina en número de observaciones - 1
+
+```{r FAMD, fig.width=10, fig.height=8}
+res.famd <- FAMD(
+  base = mediciones[,c(quant_vars, bin_vars_ok, cat_vars)],
+  ncp = 10,
+  graph = TRUE,
+  ind.sup = ind_sup_low1:ind_sup_high1
+  #ind.sup = 601:664
+)
+
+
+```
+
+### Resultado principal del analisis FAMD con datos de entrenamiento
+
+```{r resultado-FAMD}
+summary(res.famd)
+```
+
+### Resumen adicional de analisis FAMD - contribución de variables
+
+```{r resumen-FAMD, fig.width=10, fig.height=8}
+fviz_screeplot(res.famd, addlabels = TRUE)
+
+# Contribución total
+fviz_contrib(res.famd, choice = "var", axes = 1)
+fviz_contrib(res.famd, choice = "var", axes = 2)
+fviz_contrib(res.famd, choice = "var", axes = 3)
+fviz_contrib(res.famd, choice = "var", axes = 4)
+
+# Evaluar contribucion por tipo
+knitr::kable(res.famd$var$contrib)
+```
+
+## Presentar coordenadas de puntos de entrenamiento en el analisis FAMD en una tabla
+Nota: se presentan ejemplos de datos de la tabla según categoria (especie)
+
+```{r mediciones-famd-df}
+mediciones_famd <- cbind(
+        mediciones[1:ind_sup_low,c("especies","Archivo","Ejemplar","Hoja")], 
+        res.famd$ind$coord[1:ind_sup_low,])
+#mediciones_famd[,"especies"] <- factor(mediciones[1:ind_sup_low,"especies"], levels=levels(mediciones[1:ind_sup_low,"especies"]))
+
+# Mantenemos las primeras 2 filas de cada nivel del factor
+mediciones_famd_muestra <- do.call(rbind, by(mediciones_famd, mediciones_famd$especies, head, n = 2))
+knitr::kable(mediciones_famd_muestra[,1:12])
+```
+
+## Calcular las coordenadas de puntos de fosiles en el espacio FAMD en una tabla
+
+```{r fosiles-famd-df}
+fosiles_famd <- cbind(
+        mediciones[ind_sup_low1:ind_sup_high1, c("especies","Archivo","Ejemplar","Hoja")], 
+        res.famd$ind.sup$coord)
+
+## lo siguiente es para asegurar que codificacion de factores es la misma
+#fosiles_famd[,"especies"] <- factor(mediciones[ind_sup_low1:ind_sup_high1,"especies"], #levels=levels(mediciones[ind_sup_low1:ind_sup_high1,"especies"]))
+knitr::kable(fosiles_famd[,1:12])
+```
+
+## Visualizar los resultados de FAMD con los puntos de fosiles sobrepuestos
+
+```{r resultado-FAMD-grafico, fig.width=10, fig.height=8}
+n_registros <- dim(res.famd$ind$coord)[1]
+print(n_registros)
+
+selected_records <- rownames(res.famd$ind$coord)
+
+fviz_ellipses(X=res.famd, 
+              habillage=mediciones[selected_records,grupo_var],
+              axes=c(1,2), geom = "point", pointsize = 2, palette=especies_colors) + 
+      geom_point(aes(x=Dim.1, y=Dim.2), data=fosiles_famd, size=6,
+                 colour="black", bg=fosiles_colors, pch=21)
+
+fviz_ellipses(X=res.famd, 
+              habillage=mediciones[selected_records,grupo_var],
+              axes=c(1,3), geom = "point", pointsize = 2, palette=especies_colors) + 
+      geom_point(aes(x=Dim.1, y=Dim.3), data=fosiles_famd, size=6,
+                  colour="black", bg=fosiles_colors, pch=21)
+
+fviz_ellipses(X=res.famd, 
+              habillage=mediciones[selected_records,grupo_var],
+              axes=c(1,4), geom = "point", pointsize = 2, palette=especies_colors) +
+        geom_point(aes(x=Dim.1, y=Dim.4), data=fosiles_famd, size=6,
+                  colour="black", bg=fosiles_colors, pch=21)
+
+fviz_ellipses(X=res.famd, 
+              habillage=mediciones[selected_records,grupo_var],
+              axes=c(2,3), geom = "point", pointsize = 2, palette=especies_colors) +
+        geom_point(aes(x=Dim.2, y=Dim.3), data=fosiles_famd, size=6,
+                  colour="black", bg=fosiles_colors, pch=21)
+
+fviz_ellipses(X=res.famd, 
+              habillage=mediciones[selected_records,grupo_var],
+              axes=c(2,4), geom = "point", pointsize = 2, palette=especies_colors) +
+        geom_point(aes(x=Dim.2, y=Dim.4), data=fosiles_famd, size=6,
+                  colour="black", bg=fosiles_colors, pch=21)
+
+fviz_ellipses(X=res.famd, 
+              habillage=mediciones[selected_records,grupo_var],
+              axes=c(3,4), geom = "point", pointsize = 2, palette=especies_colors) +
+        geom_point(aes(x=Dim.3, y=Dim.4), data=fosiles_famd, size=6,
+                  colour="black", bg=fosiles_colors, pch=21)
+
+#fviz_famd_ind(
+#  res.famd,
+#  habillage = mediciones[[grupo_var]],
+#  addEllipses = TRUE,
+#  ellipse.level = 0.95,
+#  repel = TRUE
+#)
+```
+
+# DAPC (análisis discriminante de componentes principales) con datos de FAMD
+
+### Función discriminante en una dimensión
+
+```{r DAPC-1}
+## Tomar solo datos de entrenamiento
+mediciones_famd_refactor <- mediciones_famd[1:entrenamiento_len,]
+mediciones_famd_refactor[,1] <- as.factor(as.character(mediciones_famd[1:entrenamiento_len,1]))
+
+## Recodificar la variable del factores
+mi_dapc <- dapc(x = mediciones_famd_refactor[,5:14], 
+                grp = mediciones_famd_refactor[,1],
+     n.pca=10, n.da=1)
+mi_dapc
+
+scatter(mi_dapc, legend = TRUE, bty = "n")
+loadingplot(mi_dapc$var.contr)
+optim.a.score(mi_dapc, smart = FALSE, n.sim = 50)
+
+print(fosiles_famd[,5:14])
+prediccion <- predict.dapc(mi_dapc, newdata = fosiles_famd[,5:14])
+
+print("Probabilidades de asignación por grupo:")
+print(round(prediccion$posterior, 4))
+
+print("Grupo más probable asignado:")
+print(prediccion$assign)
+```
+
+### Grafica de DAPC de una dimensión con fosiles ubicados
+
+```{r DAPC-1-grafico, fig.width=8}
+# Gráfica de Densidad (1D) con los puntos proyectados
+
+# Extraemos las coordenadas de los datos de entrenamiento (LD1)
+coordenadas_ref <- mi_dapc$ind.coord[, 1]
+grupos_ref      <- mi_dapc$grp
+
+str(prediccion)
+
+# Extraemos las coordenadas proyectadas de los datos incógnita
+coordenadas_inc <- prediccion$ind.scores[, 1]
+print(coordenadas_inc)
+
+# Crear el gráfico base con las densidades de los grupos conocidos
+# Nota: Usamos lty = 1:clases para diferenciar las curvas si hay solapamiento
+plot(density(coordenadas_ref),
+     xlim = c(-6.5, 8.5), ylim = c(0, 0.6),
+     main = "DAPC: distribución de densidad y fosiles", 
+     xlab = "Función Discriminante 1 (LD1)", ylab = "Densidad", 
+     type = "n")
+
+# Dibujar la curva de densidad para cada grupo
+for(i in seq_along(levels(grupos_ref))) {
+  g <- levels(grupos_ref)[i]
+  lines(density(coordenadas_ref[grupos_ref == g]), col = especies_colors[i], lwd = 2)
+}
+
+# Agregar los puntos desconocidos en la base del gráfico (eje X)
+points(x = coordenadas_inc, y = rep(0, length(coordenadas_inc)), 
+       bg = fosiles_colors, col="black", pch = 21, cex = 1.5)
+
+legend("topright", 
+       legend = c(levels(grupos_ref), c("Q_laeta_f")), 
+       col = c(especies_colors, c("green")),
+       lty = c(rep(1, length(levels(grupos_ref))), NA),
+       pch = c(rep(NA, length(levels(grupos_ref))), 16), 
+       bty = "n")
+```
+
+
+### Función discriminante en cinco dimensiónes
+
+```{r DAPC-5}
+mi_dapc2 <- dapc(x = mediciones_famd_refactor[,5:14], 
+                 grp = mediciones_famd_refactor[,1],
+              n.pca=10, n.da=5)
+mi_dapc2
+
+loadingplot(mi_dapc2$var.contr)
+optim.a.score(mi_dapc2, smart = FALSE, n.sim = 50)
+```
+
+### Graficas de DAPS en cinco dimensiónes con ubicación de fosiles
+
+```{r DAPC-5-scatter, fig.width=8, fig.height=6}
+# Predicción de los datos desconocidos
+prediccion2 <- predict.dapc(mi_dapc2, newdata = fosiles_famd[,5:14])
+
+# Guardar las coordenadas proyectadas en una variable para fácil acceso
+coordenadas_fosiles <- prediccion2$ind.scores
+
+print("Coordenadas de fosiles:")
+print(coordenadas_fosiles)
+
+# Función auxiliar para no repetir código al agregar los puntos e identificadores
+agregar_puntos_fosiles <- function(eje_x, eje_y) {
+  # Extraer coordenadas para los ejes correspondientes
+  px <- coordenadas_fosiles[, eje_x]
+  py <- coordenadas_fosiles[, eje_y]
+  par(xpd=TRUE)
+  # Dibujar los puntos adicionales (más grandes)
+  points(x = px, y = py, col="black", bg = fosiles_colors, pch = 21, cex = 1.5)
+}
+
+print("PC1 vs PC2")
+scatter(mi_dapc2, xax=1, yax=2, col=especies_colors,
+        legend = TRUE, bty = "n",
+        scree.da=0, inset.solid=0.5, cex=0.8, solid=0.6, cex.lab=0.6)
+agregar_puntos_fosiles(eje_x = 1, eje_y = 2)
+
+print("PC1 vs PC3")
+scatter(mi_dapc2, xax=1, yax=3, col=especies_colors,
+        legend = TRUE, bty = "n",
+        scree.da=0, inset.solid=0.5, cex=0.8, solid=0.6, cex.lab=0.6)
+agregar_puntos_fosiles(eje_x = 1, eje_y = 3)
+
+print("PC1 vs PC4")
+scatter(mi_dapc2, xax=1, yax=4, col=especies_colors,
+        legend = TRUE, bty = "n",
+        scree.da=0, inset.solid=0.5, cex=0.8, solid=0.6, cex.lab=0.6)
+agregar_puntos_fosiles(eje_x = 1, eje_y = 4)
+
+print("PC1 vs PC5")
+scatter(mi_dapc2, xax=1, yax=5, col=especies_colors,
+        legend = TRUE, bty = "n",
+        scree.da=0, inset.solid=0.5, cex=0.8, solid=0.6, cex.lab=0.6)
+agregar_puntos_fosiles(eje_x = 1, eje_y = 5)
+
+print("PC2 vs PC3")
+scatter(mi_dapc2, xax=2, yax=3, col=especies_colors,
+        legend = TRUE, bty = "n",
+        scree.da=0, inset.solid=0.5, cex=0.8, solid=0.6, cex.lab=0.6)
+agregar_puntos_fosiles(eje_x = 2, eje_y = 3)
+
+print("PC2 vs PC4")
+scatter(mi_dapc2, xax=2, yax=4, col=especies_colors,
+        legend = TRUE, bty = "n",
+        scree.da=0, inset.solid=0.5, cex=0.8, solid=0.6, cex.lab=0.6)
+agregar_puntos_fosiles(eje_x = 2, eje_y = 4)
+
+print("PC2 vs PC5")
+scatter(mi_dapc2, xax=2, yax=5, col=especies_colors,
+        legend = TRUE, bty = "n",
+        scree.da=0, inset.solid=0.5, cex=0.8, solid=0.6, cex.lab=0.6)
+agregar_puntos_fosiles(eje_x = 2, eje_y = 5)
+
+print("PC3 vs PC4")
+scatter(mi_dapc2, xax=3, yax=4, col=especies_colors,
+        legend = TRUE, bty = "n",
+        scree.da=0, inset.solid=0.5, cex=0.8, solid=0.6, cex.lab=0.6)
+agregar_puntos_fosiles(eje_x = 3, eje_y = 4)
+
+print("PC3 vs PC5")
+scatter(mi_dapc2, xax=3, yax=5, col=especies_colors,
+        legend = TRUE, bty = "n",
+        scree.da=0, inset.solid=0.5, cex=0.8, solid=0.6, cex.lab=0.6)
+agregar_puntos_fosiles(eje_x = 3, eje_y = 5)
+
+print("PC4 vs PC5")
+scatter(mi_dapc2, xax=4, yax=5, col=especies_colors,
+        legend = TRUE, bty = "n",
+        scree.da=0, inset.solid=0.5, cex=0.8, solid=0.6, cex.lab=0.6)
+agregar_puntos_fosiles(eje_x = 4, eje_y = 5)
+
+```
+
+## Graficas de asignación de grupos en DAPC de 5 dimensiones
+
+```{r asignacion-grupos-grafico, fig.width=10}
+print("Probabilidades de asignación por grupo:")
+print(round(prediccion2$posterior, 4))
+
+print("Grupo más probable asignado:")
+print(prediccion2$assign)
+
+assignplot(mi_dapc2)
+
+assignplot(mi_dapc2, only.grp = "C_rosei")
+assignplot(mi_dapc2, only.grp = "Q_castanea")
+assignplot(mi_dapc2, only.grp = "Q_jonesii")
+assignplot(mi_dapc2, only.grp = "Q_laeta")
+assignplot(mi_dapc2, only.grp = "Q_rugosa")
+assignplot(mi_dapc2, only.grp = "Q_viminea")
+
+
+assignplot(mi_dapc2, only.grp = "unknown", new.pred=prediccion2)
+```
+
+## Grafico STRUCTURE de DAPC de cinco dimensiones
+
+```{r DAPC-STRUCTURE-grafico, fig.width=10}
+compoplot(mi_dapc2, col.pal=especies_colors)
+compoplot(as.matrix(prediccion2$posterior), col.pal=especies_colors, 
+          lab=rownames(fosiles_famd), show.lab=TRUE, posi="top")
+```
+
+
