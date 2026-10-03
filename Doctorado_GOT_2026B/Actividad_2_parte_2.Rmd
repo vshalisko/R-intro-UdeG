@@ -123,17 +123,15 @@ sombreado_t <- terra::rast(sombreado)
 
 plot(MDE_recorte_t,
      col=colores_transparentes,
-     asp=NA,
+     asp=1,
      main="Estaciones en Nayarit")
 plot(sombreado_t, add=TRUE,
      col=hcl.colors(n=20, pal="Grays"),
-     asp=NA,
      legend=FALSE)
 plot(MDE_recorte_t, add=TRUE,
      col=colores_transparentes,
-     asp=NA,
      legend=FALSE)
-plot(st_geometry(estados_geo), border="gray20", add=TRUE)
+plot(st_geometry(estados_geo), border="gray30", add=TRUE)
 plot(st_geometry(mi_estado_geo), border="black", add=TRUE)
 plot(st_geometry(mis_estaciones), pch=21, bg="yellow", add=TRUE)
 text(
