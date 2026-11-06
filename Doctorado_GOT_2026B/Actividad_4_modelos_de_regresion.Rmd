@@ -1,0 +1,304 @@
+---
+title: "Actividad 4. Modelos de regresión"
+author: "Viacheslav Shalsiko"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## Preparar el entorno de trabajo
+
+```{r}
+getwd()
+library(sf)
+library(foreign)
+library(raster)
+sessionInfo()
+```
+
+## Leer los archivos de datos
+
+```{r}
+temp <- read.dbf("datos/Temp.dbf")
+dim(temp)
+head(temp)
+
+estaciones <- st_read("datos/Estaciones_SMN_alt_ok.shp")
+
+mde <- raster("datos/MDE_occidente_500m_float_GEO.tif")
+names(mde) <- "MDE"
+mde
+```
+
+## Preparar tabla que combina datos de temperatura y elevación
+
+```{r}
+estaciones_temp <- merge(estaciones, temp, by="NUMERO_DE_")
+head(estaciones_temp)
+
+hist(estaciones_temp$TNOV)
+filtro <- estaciones_temp$TNOV == 0
+estaciones_temp <- estaciones_temp[!filtro,]
+hist(estaciones_temp$TNOV)
+
+## Un fitrado adicional opcional por la elevación
+#filtro2 <- estaciones_temp$Z_FIN <= 3200
+#estaciones_temp <- estaciones_temp[filtro2,]
+```
+
+## Visualizar la asociación entre valores de TNOV y la elevación (Z_FIN)
+
+```{r}
+plot(TNOV ~ Z_FIN, data = estaciones_temp,
+     ylab = "Temperatura de Noviembre",
+     xlab = "Elevación (msnm)")
+```
+
+## Construir un modelo de regresión lineal simple
+
+```{r}
+modelo1 <- lm(TNOV ~ Z_FIN, data = estaciones_temp)
+summary(modelo1)
+
+par(mfcol=c(1,2))
+plot(modelo1)
+plot(modelo1, which = 4)
+```
+
+## Visualizar graficamente el modelo lineal
+
+1) Intervalo de confianza de promedio
+2) Error esperado de predicción
+
+```{r}
+plot(TNOV ~ Z_FIN, data = estaciones_temp,
+     ylab = "Temperatura de Noviembre",
+     xlab = "Elevación (msnm)")
+
+z <- seq(0, 4000, 5)
+t <- predict(modelo1, data.frame("Z_FIN" = z),
+             interval = "confidence", level = 0.95)
+t_p <- predict(modelo1, data.frame("Z_FIN" = z),
+             interval = "prediction", level = 0.95)
+
+lines(x = z, y = t[,"lwr"], col = "blue", lwd = 1)
+lines(x = z, y = t[,"upr"], col = "blue", lwd = 1)
+lines(x = z, y = t_p[,"lwr"], col = "blue", lwd = 1, lty = 2)
+lines(x = z, y = t_p[,"upr"], col = "blue", lwd = 1, lty = 2)
+lines(x = z, y = t[,"fit"], col = "red", lwd = 2)
+
+legend("topright",
+       legend = c("Regresión lineal", 
+                  "IC de 95%", 
+                  "Intervalo de predicción 95%"),
+       col = c("red", "blue", "blue"),
+       lwd = c(2, 1, 1),
+       lty = c(1, 1, 2),
+       bty = "n",
+       cex = 0.8)
+```
+
+## Diagnostico adicional de regresión lineal y exclusión de los puntos influyentes
+
+```{r}
+library(car)
+residualPlots(modelo1)
+influyence_plot <- influencePlot(modelo1)
+ncvTest(modelo1)
+
+str(influyence_plot)
+
+influyentes <- as.numeric(rownames(influyence_plot)) 
+influyentes 
+
+estaciones_temp2 <- estaciones_temp[
+        !rownames(estaciones_temp) %in% influyentes,]
+```
+
+## Modelo lineal sin puntos influyentes
+
+```{r}
+modelo2 <- lm(TNOV ~ Z_FIN, data = estaciones_temp2)
+summary(modelo2)
+
+par(mfcol=c(1,2))
+plot(modelo2)
+plot(modelo2, which = 4)
+```
+
+```{r}
+plot(TNOV ~ Z_FIN, data = estaciones_temp2,
+     ylab = "Temperatura de Noviembre",
+     xlab = "Elevación (msnm)")
+
+z <- seq(0, 4000, 5)
+t <- predict(modelo2, data.frame("Z_FIN" = z),
+             interval = "confidence", level = 0.95)
+t_p <- predict(modelo2, data.frame("Z_FIN" = z),
+             interval = "prediction", level = 0.95)
+
+lines(x = z, y = t[,"lwr"], col = "blue", lwd = 1)
+lines(x = z, y = t[,"upr"], col = "blue", lwd = 1)
+lines(x = z, y = t_p[,"lwr"], col = "blue", lwd = 1, lty = 2)
+lines(x = z, y = t_p[,"upr"], col = "blue", lwd = 1, lty = 2)
+lines(x = z, y = t[,"fit"], col = "red", lwd = 2)
+
+legend("topright",
+       legend = c("Regresión lineal", 
+                  "IC de 95%", 
+                  "Intervalo de predicción 95%"),
+       col = c("red", "blue", "blue"),
+       lwd = c(2, 1, 1),
+       lty = c(1, 1, 2),
+       bty = "n",
+       cex = 0.8)
+```
+
+## Diagnostico adicional de regresión lineal sin puntos influyentes
+
+```{r}
+residualPlots(modelo2)
+influyence_plot2 <- influencePlot(modelo2)
+ncvTest(modelo2)
+```
+
+## Construir modelo lineal de grado 2
+
+```{r}
+modelo3 <- lm(TNOV ~ Z_FIN + I(Z_FIN^2), data = estaciones_temp2)
+summary(modelo3)
+
+par(mfcol=c(1,2))
+plot(modelo3)
+plot(modelo3, which = 4)
+residualPlots(modelo3)
+par(mfcol=c(1,1))
+influencePlot(modelo3)
+ncvTest(modelo3)
+```
+
+```{r}
+plot(TNOV ~ Z_FIN, data = estaciones_temp2,
+     ylab = "Temperatura de Noviembre",
+     xlab = "Elevación (msnm)")
+
+z <- seq(0, 4000, 5)
+t <- predict(modelo3, data.frame("Z_FIN" = z),
+             interval = "confidence", level = 0.95)
+t_p <- predict(modelo3, data.frame("Z_FIN" = z),
+             interval = "prediction", level = 0.95)
+
+lines(x = z, y = t[,"lwr"], col = "blue", lwd = 1)
+lines(x = z, y = t[,"upr"], col = "blue", lwd = 1)
+lines(x = z, y = t_p[,"lwr"], col = "blue", lwd = 1, lty = 2)
+lines(x = z, y = t_p[,"upr"], col = "blue", lwd = 1, lty = 2)
+lines(x = z, y = t[,"fit"], col = "red", lwd = 2)
+
+legend("topright",
+       legend = c("Regresión lineal", 
+                  "IC de 95%", 
+                  "Intervalo de predicción 95%"),
+       col = c("red", "blue", "blue"),
+       lwd = c(2, 1, 1),
+       lty = c(1, 1, 2),
+       bty = "n",
+       cex = 0.8)
+```
+
+## Construir un modelo de dos variables (elevación y latitud)
+
+```{r}
+estaciones_temp2$LAT <- st_coordinates(estaciones_temp2)[,"Y"]
+estaciones_temp2$LON <- st_coordinates(estaciones_temp2)[,"X"]
+
+modelo4 <- lm(TNOV ~ Z_FIN + LAT, data = estaciones_temp2)
+summary(modelo4)
+
+par(mfcol=c(1,2))
+plot(modelo4)
+plot(modelo4, which = 4)
+residualPlots(modelo4)
+par(mfcol=c(1,1))
+influencePlot(modelo4)
+ncvTest(modelo4)
+```
+
+## Construir un modelo de dos variables cuadratico
+
+```{r}
+modelo5 <- lm(TNOV ~ Z_FIN + I(Z_FIN^2) + LAT, data = estaciones_temp2)
+summary(modelo5)
+
+par(mfcol=c(1,2))
+plot(modelo5)
+plot(modelo5, which = 4)
+residualPlots(modelo5)
+par(mfcol=c(1,1))
+influencePlot(modelo5)
+ncvTest(modelo5)
+```
+
+## Construir un modelo de dos variables cuadratico (con dos variables cuadraticos)
+
+```{r}
+modelo6 <- lm(TNOV ~ Z_FIN + I(Z_FIN^2) + LAT + I(LAT^2), data = estaciones_temp2)
+summary(modelo6)
+
+par(mfcol=c(1,2))
+plot(modelo6)
+plot(modelo6, which = 4)
+residualPlots(modelo6)
+par(mfcol=c(1,1))
+influencePlot(modelo6)
+ncvTest(modelo6)
+```
+
+```{r}
+modelo7 <- lm(TNOV ~ Z_FIN + I(Z_FIN^2) + I(LAT^2), data = estaciones_temp2)
+summary(modelo7)
+
+par(mfcol=c(1,2))
+plot(modelo7)
+plot(modelo7, which = 4)
+residualPlots(modelo7)
+par(mfcol=c(1,1))
+influencePlot(modelo7)
+ncvTest(modelo7)
+```
+
+## Grafico del modleo de dos variables cuadratico
+
+```{r}
+plot(TNOV ~ Z_FIN, data = estaciones_temp2,
+     col = "gray",
+     ylab = "Temperatura de Noviembre",
+     xlab = "Elevación (msnm)")
+
+z <- seq(0, 4000, 5)
+t <- predict(modelo7, data.frame("Z_FIN" = z, "LAT" = 20),
+             interval = "confidence", level = 0.95)
+t26 <- predict(modelo7, data.frame("Z_FIN" = z, "LAT" = 26),
+             interval = "confidence", level = 0.95)
+t23 <- predict(modelo7, data.frame("Z_FIN" = z, "LAT" = 23),
+             interval = "confidence", level = 0.95)
+t17 <- predict(modelo7, data.frame("Z_FIN" = z, "LAT" = 17),
+             interval = "confidence", level = 0.95)
+
+lines(x = z, y = t[,"lwr"], col = "blue", lwd = 1)
+lines(x = z, y = t[,"upr"], col = "blue", lwd = 1)
+lines(x = z, y = t[,"fit"], col = "red", lwd = 2)
+lines(x = z, y = t26[,"fit"], col = "black", lwd = 1, lty=4)
+lines(x = z, y = t23[,"fit"], col = "black", lwd = 1, lty=5)
+lines(x = z, y = t17[,"fit"], col = "black", lwd = 1, lty=6)
+
+legend("topright",
+       legend = c("Regresión lineal (LAT = 20°)", 
+                  "IC de 95% (LAT = 20°)", 
+                  "Regresión lineal (LAT = 26°)",
+                  "Regresión lineal (LAT = 23°)",
+                  "Regresión lineal (LAT = 17°)"),
+       col = c("red", "blue", "black", "black", "black"),
+       lwd = c(2, 1, 1, 1, 1),
+       lty = c(1, 1, 4, 5, 6),
+       bty = "n",
+       cex = 0.8)
+```
