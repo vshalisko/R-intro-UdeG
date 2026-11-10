@@ -1,0 +1,56 @@
+graph TD
+    %% Título principal
+    CALCULO["Cálculo Integral de una Variable<br/><i>(BC104 / Programa de Asignatura)</i>"]
+
+    %% Bloque 1: Origen y Antiderivada
+    subgraph M1 ["1. Fundamentos de Antiderivación"]
+        A["Concepto de Antiderivada<br/><b>F'(x) = f(x)</b>"] --> B["Antiderivada General<br/><b>F(x) + C</b>"]
+        B --> C["Linealidad de Antiderivadas<br/><b>∫(k·f ± g)dx = k F + G + C</b>"]
+        B --> D["Problemas de Valor Inicial<br/><b>dy/dx = f(x), y(x₀) = y₀</b>"]
+    end
+
+    %% Bloque 2: Integral Indefinida
+    subgraph M2 ["2. Operador Integral Indefinida"]
+        E["Integral Indefinida<br/><b>∫ f(x) dx = F(x) + C</b>"] --> F["Fórmulas Inmediatas<br/><b>∫ xⁿ dx = (xⁿ⁺¹)/(n+1) + C</b>"]
+        F --> G["Integrales Elementales<br/><b>Trigonométricas y Exponenciales</b>"]
+    end
+
+    %% Bloque 3: Integral Definida y Sumas
+    subgraph M3 ["3. Construcción del Área e Integral Definida"]
+        H["Sumas de Riemann<br/><b>Sₙ = Σ f(cₖ) Δxₖ</b>"] --> I["Integral Definida<br/><b>∫ₐᵇ f(x)dx = lim ||P||→0 Σ f(cₖ) Δxₖ</b>"]
+        I --> J["Propiedades Operativas<br/><b>∫ₐᶜ + ∫꜀ᵇ = ∫ₐᵇ  |  Aditividad y Dominación</b>"]
+    end
+
+    %% Bloque 4: Teorema Fundamental del Cálculo
+    subgraph M4 ["4. Teorema Fundamental del Cálculo (TFC)"]
+        K["TFC Parte 1: Función Acumulativa<br/><b>(d/dx) ∫ₐˣ f(t)dt = f(x)</b>"]
+        L["TFC Parte 2: Teorema de Evaluación<br/><b>∫ₐᵇ f(x)dx = F(b) - F(a)</b>"]
+    end
+
+    %% Bloque 5: Métodos de Integración
+    subgraph M5 ["5. Métodos de Integración"]
+        M["Cambio de Variable / Sustitución<br/><b>∫ f(g(x))g'(x)dx = ∫ f(u)du</b>"]
+        N["Integración por Partes<br/><b>∫ u dv = u v - ∫ v du</b>"]
+        O["Integrales Trigonométricas<br/><b>Uso de Identidades y Sustituciones</b>"]
+        P["Integrales Impropias<br/><b>Límites Infinitos o Discontinuidades</b>"]
+    end
+
+    %% Bloque 6: Aplicaciones
+    subgraph M6 ["6. Aplicaciones del Cálculo Integral"]
+        Q["Áreas entre Curvas<br/><b>A = ∫ₐᵇ [f(x) - g(x)] dx</b>"]
+        R["Geometría de Sólidos<br/><b>Volúmenes y Longitud de Arco</b>"]
+        S["Física e Ingeniería<br/><b>Trabajo, Centros de Masa y Potencia</b>"]
+    end
+
+    %% Conexiones jerárquicas y secuencia pedagógica
+    CALCULO --> M1
+    M1 --> M2
+    M2 --> M3
+    M3 --> M4
+    M4 --> M5
+    M5 --> M6
+
+    %% Estilos visuales
+    classDef default fill:#f9f9f9,stroke:#333,stroke-width:1px;
+    classDef mainHeader fill:#1f77b4,color:#fff,stroke:#0d47a1,stroke-width:2px,font-weight:bold;
+    class CALCULO mainHeader;
