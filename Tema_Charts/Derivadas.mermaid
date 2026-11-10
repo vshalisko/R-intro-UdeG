@@ -1,42 +1,47 @@
-flowchart TD
-    %% Estilos globales de nodos
-    classDef inicio fill:#e1f5fe,stroke:#0288d1,stroke-width:2px,color:#01579b;
-    classDef concepto fill:#ffffff,stroke:#37474f,stroke-width:2px,color:#263238;
-    classDef metodo fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#4a148c;
-    classDef aplicacion fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#1b5e20;
+graph TD
+    %% Título principal
+    CALCULO["Cálculo Diferencial de una Variable<br/><i>(Programa de Asignatura)</i>"]
 
-    %% NODO CENTRAL / INICIO
-    A["<b>1. Tasa de Cambio Promedio (Intervalo)</b><br/>-----------------------------------<br/>Fórmula: Δy / Δx = [f(x₁ + h) - f(x₁)] / h<br/>Gráfico: Pendiente de la Recta Secante (PQ)"] :::inicio
+    %% Bloque 1: Origen y Variación
+    subgraph M1 ["1. Tasas de Cambio y Variación"]
+        A["Tasa de Cambio Promedio<br/><b>Δy / Δx = [f(x₂)-f(x₁)] / [x₂-x₁]</b>"] --> B["Secante a Tangente<br/><b>Pendiente mₛₑ꜀ → mₜₐₙ</b>"]
+        B --> C["Tasa de Cambio Instantánea<br/><b>lim (Δx→0) Δy/Δx</b>"]
+    end
 
-    %% BLOQUE 1: TRANSICIÓN AL LÍMITE
-    B["<b>2. Tasa de Cambio Instantánea</b><br/>-----------------------------------<br/>Fórmula: lim (h->0) [Δy / Δx]<br/>Gráfico: Secantes convergen a la Recta Tangente"] :::concepto
+    %% Bloque 2: Límites y Continuidad
+    subgraph M2 ["2. Fundamentos de Límites y Continuidad"]
+        D["Concepto de Límite<br/><b>lim (x→c) f(x) = L</b>"] --> E["Límites Laterales y Existencia<br/><b>lim (x→c⁻) = lim (x→c⁺)</b>"]
+        E --> F["Indeterminaciones y Continuidad<br/><b>Formas 0/0, ∞/∞ y Saltos</b>"]
+    end
 
-    C["<b>3. Teoría de Límites y Continuidad</b><br/>-----------------------------------<br/>Fórmula: lim (x->c) f(x) = L | f(c) existe<br/>Gráfico: Eliminación de Indeterminaciones (0/0)"] :::concepto
+    %% Bloque 3: Definición de la Derivada
+    subgraph M3 ["3. Definición Operativa de la Derivada"]
+        G["Cociente Diferencial<br/><b>f'(x) = lim (h→0) [f(x+h)-f(x)]/h</b>"] --> H["Interpretación Geométrica<br/><b>Pendiente de la Recta Tangente</b>"]
+        H --> I["Diferenciabilidad y Suavidad<br/><b>f'(x) existe ⟹ f es continua</b>"]
+    end
 
-    %% BLOQUE 2: DEFINICIÓN Y REGLAS DE LA DERIVADA
-    D["<b>4. Definición Formal de la Derivada</b><br/>-----------------------------------<br/>Fórmula: f'(x) = dy/dx = lim (h->0) [f(x+h) - f(x)]/h<br/>Gráfico: Pendiente de la Curva en el punto P(x, f(x))"] :::metodo
+    %% Bloque 4: Reglas de Derivación
+    subgraph M4 ["4. Reglas Operativas de Derivación"]
+        J["Reglas Básicas y Potencias<br/><b>d/dx[xⁿ] = n xⁿ⁻¹</b>"] --> K["Reglas de Producto y Cociente<br/><b>(u·v)' = u'v + uv'  |  (u/v)'</b>"]
+        K --> L["Regla de la Cadena<br/><b>(f ∘ g)'(x) = f'(g(x))·g'(x)</b>"]
+    end
 
-    E["<b>5. Reglas Operativas de Derivación</b><br/>-----------------------------------<br/>• Potencia: d/dx[xⁿ] = n·xⁿ⁻¹<br/>• Producto: (u·v)' = u'v + uv'<br/>• Cociente: (u/v)' = (u'v - uv') / v²<br/>• Cadena: dy/dx = (dy/du) · (du/dx)"] :::metodo
+    %% Bloque 5: Trascendentes, Implícita y Orden Superior
+    subgraph M5 ["5. Funciones Trascendentes y Derivación Implícita"]
+        M["Trigonométricas, Exp. y Log.<br/><b>(sin x)' = cos x  |  (eˣ)' = eˣ</b>"] --> N["Derivación Implícita<br/><b>d/dx[F(x,y) = 0] ⟹ dy/dx</b>"]
+        N --> O["Derivadas de Orden Superior<br/><b>f''(x) = d²y/dx² (Aceleración)</b>"]
+    end
 
-    F["<b>6. Funciones Trascendentes</b><br/>-----------------------------------<br/>• Trigonométricas: d/dx[sin x] = cos x<br/>• Exponenciales: d/dx[eˣ] = eˣ<br/>• Logarítmicas: d/dx[ln x] = 1/x"] :::metodo
+    %% Bloque 6: Aplicaciones y Optimización
+    subgraph M6 ["6. Análisis de Funciones y Optimización"]
+        P["Monotonía y Extremos Relativos<br/><b>Criterio de la 1ª Derivada</b>"] --> Q["Concavidad y Puntos de Inflexión<br/><b>Criterio de la 2ª Derivada</b>"]
+        Q --> R["Optimización y Razón de Cambio<br/><b>Máximos, Mínimos y Tasas Relacionadas</b>"]
+    end
 
-    %% BLOQUE 3: DERIVADAS DE ORDEN SUPERIOR E IMPLÍCITAS
-    G["<b>7. Derivadas de Orden Superior</b><br/>-----------------------------------<br/>Fórmula: f''(x) = d²y/dx² = d/dx[f'(x)]<br/>Gráfico: Curva de Aceleración a(t) = v'(t) = s''(t)"] :::metodo
-
-    H["<b>8. Derivación Implícita</b><br/>-----------------------------------<br/>Fórmula: d/dx[F(x, y) = 0] => dy/dx<br/>Gráfico: Tangentes en curvas cerradas (ej. x² + y² = r²)"] :::metodo
-
-    %% BLOQUE 4: APLICACIONES Y OPTIMIZACIÓN
-    I["<b>9. Análisis Gráfico y Concavidad</b><br/>-----------------------------------<br/>• 1ª Derivada: f'(x)>0 (Creciente) | f'(x)<0 (Decreciente)<br/>• 2ª Derivada: f''(x)>0 (Convexa) | f''(x)<0 (Cóncava)<br/>• Puntos Notables: Críticos f'(c)=0, Inflexión f''(c)=0"] :::aplicacion
-
-    J["<b>10. Optimización Aplicada</b><br/>-----------------------------------<br/>Fórmula: Max/Min de f(x) sujeto a restricciones<br/>Gráfico: Punto de Máxima Ganancia o Mínimo Costo"] :::aplicacion
-
-    %% CONEXIONES Y FLUJO DIDÁCTICO
-    A -->|Proceso de límite h -> 0| B
-    B -->|Fundamentación matemática| C
-    C -->|Formalización del cociente| D
-    D -->|Sistematización de cálculo| E
-    E -->|Extensión de dominio| F
-    E -->|Derivación sucesiva| G
-    E -->|Relaciones no explícitas| H
-    G & H -->|Interpretación de curvas| I
-    I -->|Modelado de problemas| J
+    %% Conexiones jerárquicas y secuencia pedagógica
+    CALCULO --> M1
+    M1 --> M2
+    M2 --> M3
+    M3 --> M4
+    M4 --> M5
+    M5 --> M6
