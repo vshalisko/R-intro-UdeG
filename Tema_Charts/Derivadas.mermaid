@@ -20,28 +20,43 @@ graph TD
         H --> I["Diferenciabilidad y Suavidad<br/><b>f'(x) existe ⟹ f es continua</b>"]
     end
 
-    %% Bloque 4: Reglas de Derivación
-    subgraph M4 ["4. Reglas Operativas de Derivación"]
-        J["Reglas Básicas y Potencias<br/><b>d/dx[xⁿ] = n xⁿ⁻¹</b>"] --> K["Reglas de Producto y Cociente<br/><b>(u·v)' = u'v + uv'  |  (u/v)'</b>"]
-        K --> L["Regla de la Cadena<br/><b>(f ∘ g)'(x) = f'(g(x))·g'(x)</b>"]
+    %% Bloque 4: Reglas Operativas y Orden Superior
+    subgraph M4 ["4. Reglas Operativas y Orden Superior"]
+        J["Reglas Básicas y Cadenas<br/><b>(xⁿ)', (u·v)', (u/v)', (f ∘ g)'</b>"] --> K["Funciones Trascendentes<br/><b>(sin x)' = cos x  |  (eˣ)' = eˣ</b>"]
+        K --> L["Derivadas de Orden Superior<br/><b>f''(x), f'''(x), ..., f⁽ⁿ⁾(x)</b>"]
     end
 
-    %% Bloque 5: Trascendentes, Implícita y Orden Superior
-    subgraph M5 ["5. Funciones Trascendentes y Derivación Implícita"]
-        M["Trigonométricas, Exp. y Log.<br/><b>(sin x)' = cos x  |  (eˣ)' = eˣ</b>"] --> N["Derivación Implícita<br/><b>d/dx[F(x,y) = 0] ⟹ dy/dx</b>"]
-        N --> O["Derivadas de Orden Superior<br/><b>f''(x) = d²y/dx² (Aceleración)</b>"]
+    %% Rama A: Derivación Implícita
+    subgraph M5 ["5. Derivación Implícita y Tasas Relacionadas"]
+        M["Derivación Implícita<br/><b>d/dx[F(x,y) = 0] ⟹ dy/dx</b>"] --> N["Tasas de Cambio Relacionadas<br/><b>Relación dy/dt con dx/dt</b>"]
     end
 
-    %% Bloque 6: Aplicaciones y Optimización
-    subgraph M6 ["6. Análisis de Funciones y Optimización"]
-        P["Monotonía y Extremos Relativos<br/><b>Criterio de la 1ª Derivada</b>"] --> Q["Concavidad y Puntos de Inflexión<br/><b>Criterio de la 2ª Derivada</b>"]
-        Q --> R["Optimización y Razón de Cambio<br/><b>Máximos, Mínimos y Tasas Relacionadas</b>"]
+    %% Rama B: Análisis Gráfico de Funciones
+    subgraph M6 ["6. Análisis Gráfico de Funciones"]
+        O["Criterio de la 1ª Derivada<br/><b>Monotonía y Extremos Relativos f'(c)=0</b>"] --> P["Criterio de la 2ª Derivada<br/><b>Concavidad y Puntos de Inflexión f''(c)=0</b>"]
+        P --> Q["Teoremas del Valor Medio y Rolle<br/><b>f'(c) = [f(b)-f(a)] / (b-a)</b>"]
     end
 
-    %% Conexiones jerárquicas y secuencia pedagógica
+    %% Rama C: Métodos de Aproximación y Numéricos
+    subgraph M7 ["7. Métodos de Aproximación y Numéricos"]
+        R["Aproximación Lineal y Diferenciales<br/><b>L(x) = f(a) + f'(a)(x-a)  |  dy = f'(x)dx</b>"] --> S["Método de Newton-Raphson<br/><b>xₙ₊₁ = xₙ - f(xₙ) / f'(xₙ)</b>"]
+    end
+
+    %% Bloque 8: Optimización Aplicada
+    subgraph M8 ["8. Optimización Aplicada"]
+        T["Problemas de Máximos y Mínimos<br/><b>Modelación con Restricciones Reales</b>"]
+    end
+
+    %% Secuencia jerárquica principal
     CALCULO --> M1
     M1 --> M2
     M2 --> M3
     M3 --> M4
+    
+    %% Ramificación didáctica desde el bloque 4
     M4 --> M5
-    M5 --> M6
+    M4 --> M6
+    M4 --> M7
+
+    %% Integración hacia la aplicación final
+    M6 & M7 --> M8
