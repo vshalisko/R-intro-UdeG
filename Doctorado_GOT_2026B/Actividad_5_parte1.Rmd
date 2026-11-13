@@ -1,0 +1,78 @@
+---
+title: "Actividad 5. Modelo aditivo generalizado (GAM)"
+author: "Viacheslav Shalsiko"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## Preparar el entorno de trabajo
+
+```{r}
+getwd()
+library(sf)
+library(foreign)
+library(raster)
+library(mgcv)
+library(RColorBrewer)
+sessionInfo()
+```
+
+## Leer los archivos de datos
+
+```{r}
+temp <- read.dbf("datos/Temp.dbf")
+dim(temp)
+head(temp)
+
+estaciones <- st_read("datos/Estaciones_SMN_alt_ok.shp")
+
+mde <- raster("datos/MDE_occidente_500m_float_GEO.tif")
+names(mde) <- "MDE"
+mde
+```
+
+## Preparar tabla que combina datos de temperatura y elevación
+
+```{r}
+estaciones_temp <- merge(estaciones, temp, by="NUMERO_DE_")
+
+filtro <- estaciones_temp$TNOV == 0
+estaciones_temp <- estaciones_temp[!filtro,]
+
+estaciones_temp$LAT <- st_coordinates(estaciones_temp)[,"Y"]
+estaciones_temp$LON <- st_coordinates(estaciones_temp)[,"X"]
+
+head(estaciones_temp)
+```
+
+### Revisar el partron geoespacial de variable dependiente y predictores
+
+```{r}
+plot(estaciones_temp[,"TNOV"])
+plot(estaciones_temp[,"Z_FIN"])
+```
+
+### Construir el modelo GAM de una variable
+
+```{r}
+modelo8 <- gam(TNOV ~ s(Z_FIN), data = estaciones_temp)
+summary(modelo8)
+gam.check(modelo8)
+plot(modelo8, pages = 1, seWithMean = TRUE)
+plot(modelo8, pages = 1, residuals = TRUE)
+```
+
+### Construir el modelo GAM de tres variables
+
+```{r}
+modelo9 <- gam(TNOV ~ s(Z_FIN) + s(LON, LAT, k = 100), data = estaciones_temp)
+summary(modelo9)
+gam.check(modelo9)
+plot(modelo9, pages = 2, residuals = TRUE)
+vis.gam(modelo9, view = c("LON","LAT"),
+        plot.type = "contour", color = "cm")
+vis.gam(modelo9, view = c("LAT","Z_FIN"),
+        plot.type = "contour", color = "cm")
+vis.gam(modelo9, view = c("LON","Z_FIN"),
+        plot.type = "contour", color = "cm")
+```
