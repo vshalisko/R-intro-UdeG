@@ -1,0 +1,125 @@
+flowchart TD
+%% Definición de estilos
+classDef inicioFin fill:#2b5876,stroke:#1a3648,stroke-width:2px,color:#ffffff,font-weight:bold
+classDef entrada fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f
+classDef proceso fill:#f4f7f6,stroke:#4e7a8c,stroke-width:2px,color:#1f2933
+classDef modelo fill:#e8f4f8,stroke:#0077b6,stroke-width:2px,color:#03045e
+classDef eval fill:#f3e8ff,stroke:#7e22ce,stroke-width:2px,color:#3b0764
+classDef filtro fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#7f1d1d
+
+Inicio([Inicio del Análisis: Modelos LM]):::inicioFin --> Config
+
+subgraph S1 [1. Configuración y Entradas Independientes]
+    direction TB
+    Config["<b>Preparar entorno de trabajo</b><br/>Cargar librerías espaciales y verificar sesión<br/><code>library(sf, foreign, raster)</code><br/><code>sessionInfo()</code>"]:::proceso
+    
+    InTabla[/"<b>Tabla de datos DBF</b><br/>Leer temperaturas<br/><code>temp <- read.dbf('datos/Temp.dbf')</code>"/]:::entrada
+    InVector[/"<b>Datos Vectoriales SHP</b><br/>Leer estaciones meteorológicas<br/><code>estaciones <- st_read('datos/Estaciones_SMN_alt_ok.shp')</code>"/]:::entrada
+    InRaster[/"<b>Datos Raster GeoTIFF</b><br/>Leer Modelo Digital de Elevación<br/><code>mde <- raster('datos/MDE_occidente_500m_float_GEO.tif')</code>"/]:::entrada
+
+    Config --> InTabla
+    Config --> InVector
+    Config --> InRaster
+end
+
+subgraph S2 [2. Preprocesamiento y Exploración Inicial]
+    direction TB
+    P_Merge["<b>2.1 Unión tabular-espacial</b><br/>Combinar estaciones y temperaturas<br/><code>estaciones_temp <- merge(estaciones, temp, by='NUMERO_DE_')</code>"]:::proceso
+    
+    P_Filter["<b>2.2 Limpieza de ceros y distribución</b><br/>Explorar histogramas y filtrar TNOV == 0<br/><code>hist(estaciones_temp$TNOV)</code><br/><code>estaciones_temp <- estaciones_temp[!filtro,]</code>"]:::proceso
+    
+    P_Explore["<b>2.3 Exploración bivariada</b><br/>Visualizar dispersión Temperatura vs Elevación<br/><code>plot(TNOV ~ Z_FIN, data = estaciones_temp)</code>"]:::proceso
+
+    InTabla --> P_Merge
+    InVector --> P_Merge
+    P_Merge --> P_Filter
+    P_Filter --> P_Explore
+end
+
+subgraph S3 [3. Modelado Lineal Inicial y Depuración de Datos]
+    direction TB
+    M1_Fit["<b>3.1 Ajuste Modelo 1 (Lineal Simple)</b><br/>Temperatura en función de altitud (con datos brutos)<br/><code>modelo1 <- lm(TNOV ~ Z_FIN, data = estaciones_temp)</code>"]:::modelo
+    
+    M1_Eval["<b>3.2 Evaluación y Diagnóstico M1</b><br/>Resumen, residuales y distancia de Cook<br/><code>summary(modelo1)</code><br/><code>plot(modelo1); plot(modelo1, which = 4)</code>"]:::eval
+    
+    M1_Vis["<b>3.3 Visualización M1</b><br/>Curva ajustada, IC 95% e intervalo de predicción<br/><code>predict(modelo1, ..., interval = 'confidence'/'prediction')</code><br/><code>lines(...); legend(...)</code>"]:::eval
+    
+    M1_Outliers["<b>3.4 Diagnóstico Avanzado y Filtrado de Influyentes</b><br/>Pruebas de heterocedasticidad y exclusión de atípicos<br/><code>library(car); residualPlots(modelo1); ncvTest(modelo1)</code><br/><code>influyentes <- as.numeric(rownames(influencePlot(modelo1)))</code><br/><code>estaciones_temp2 <- estaciones_temp[!rownames(...) %in% influyentes,]</code>"]:::filtro
+
+    M1_Fit --> M1_Eval --> M1_Vis --> M1_Outliers
+end
+
+P_Explore --> M1_Fit
+
+subgraph S4 [4. Modelos Univariados Depurados sobre Elevación]
+    direction TB
+    subgraph M2_Box [Rama A: Lineal Simple Depurado]
+        direction TB
+        M2_Fit["<b>4.1a Ajuste Modelo 2</b><br/>Regresión lineal sin puntos influyentes<br/><code>modelo2 <- lm(TNOV ~ Z_FIN, data = estaciones_temp2)</code>"]:::modelo
+        M2_Eval["<b>4.2a Evaluación y Diagnóstico M2</b><br/>Validación estadística y pruebas de influencia<br/><code>summary(modelo2); plot(modelo2)</code><br/><code>residualPlots(modelo2); influencePlot(modelo2); ncvTest(modelo2)</code>"]:::eval
+        M2_Vis["<b>4.3a Visualización M2</b><br/>Recta ajustada e intervalos de confianza/predicción<br/><code>predict(modelo2, ...); lines(...)</code>"]:::eval
+        
+        M2_Fit --> M2_Eval --> M2_Vis
+    end
+
+    subgraph M3_Box [Rama B: Polinomial Grado 2]
+        direction TB
+        M3_Fit["<b>4.1b Ajuste Modelo 3 (Cuadrático)</b><br/>Incorporar término cuadrático de altitud<br/><code>modelo3 <- lm(TNOV ~ Z_FIN + I(Z_FIN^2), data = estaciones_temp2)</code>"]:::modelo
+        M3_Eval["<b>4.2b Evaluación y Diagnóstico M3</b><br/>Validación de curvatura y homocedasticidad<br/><code>summary(modelo3); plot(modelo3)</code><br/><code>residualPlots(modelo3); influencePlot(modelo3); ncvTest(modelo3)</code>"]:::eval
+        M3_Vis["<b>4.3b Visualización M3</b><br/>Curva cuadrática e intervalos al 95%<br/><code>predict(modelo3, ...); lines(...)</code>"]:::eval
+        
+        M3_Fit --> M3_Eval --> M3_Vis
+    end
+end
+
+M1_Outliers --> M2_Fit
+M1_Outliers --> M3_Fit
+
+subgraph S5 [5. Modelos Multivariados con Coordenadas Geográficas]
+    direction TB
+    P_Coords["<b>5.1 Extracción de Coordenadas</b><br/>Obtener Latitud y Longitud para datos depurados<br/><code>estaciones_temp2$LAT <- st_coordinates(estaciones_temp2)[,'Y']</code><br/><code>estaciones_temp2$LON <- st_coordinates(estaciones_temp2)[,'X']</code>"]:::proceso
+
+    subgraph M4_Box [Modelo 4: Aditivo Lineal]
+        direction TB
+        M4_Fit["<b>5.2a Ajuste Modelo 4</b><br/>Altitud lineal + Latitud lineal<br/><code>modelo4 <- lm(TNOV ~ Z_FIN + LAT, data = estaciones_temp2)</code>"]:::modelo
+        M4_Eval["<b>5.3a Evaluación M4</b><br/>Diagnóstico estándar y ANOVA robusto<br/><code>summary(modelo4); residualPlots(modelo4); ncvTest(modelo4)</code><br/><code>Anova(modelo4, type = 'II', white.adjust = 'hc3')</code>"]:::eval
+        M4_Fit --> M4_Eval
+    end
+
+    subgraph M5_Box [Modelo 5: Mixto]
+        direction TB
+        M5_Fit["<b>5.2b Ajuste Modelo 5</b><br/>Altitud cuadrática + Latitud lineal<br/><code>modelo5 <- lm(TNOV ~ Z_FIN + I(Z_FIN^2) + LAT, ...)</code>"]:::modelo
+        M5_Eval["<b>5.3b Evaluación M5</b><br/>Resumen y pruebas de residuales<br/><code>summary(modelo5); plot(modelo5); residualPlots(modelo5)</code>"]:::eval
+        M5_Fit --> M5_Eval
+    end
+
+    subgraph M6_Box [Modelo 6: Cuadrático Completo]
+        direction TB
+        M6_Fit["<b>5.2c Ajuste Modelo 6</b><br/>Altitud cuadrática + Latitud cuadrática<br/><code>modelo6 <- lm(TNOV ~ Z_FIN + I(Z_FIN^2) + LAT + I(LAT^2), ...)</code>"]:::modelo
+        M6_Eval["<b>5.3c Evaluación M6</b><br/>Resumen y diagnóstico de significancia<br/><code>summary(modelo6); plot(modelo6); residualPlots(modelo6)</code>"]:::eval
+        M6_Fit --> M6_Eval
+    end
+
+    subgraph M7_Box [Modelo 7: Cuadrático Depurado]
+        direction TB
+        M7_Fit["<b>5.2d Ajuste Modelo 7</b><br/>Sin término lineal de Latitud<br/><code>modelo7 <- lm(TNOV ~ Z_FIN + I(Z_FIN^2) + I(LAT^2), ...)</code>"]:::modelo
+        M7_Eval["<b>5.3d Evaluación y ANOVA M7</b><br/>Diagnóstico completo y tablas ANOVA Tipo II/III<br/><code>summary(modelo7); residualPlots(modelo7); ncvTest(modelo7)</code><br/><code>Anova(modelo7, type = 'II'); Anova(modelo7, type = 'III')</code>"]:::eval
+        M7_Vis["<b>5.4d Visualización Multivariada M7</b><br/>Curvas de predicción por cortes de latitud (17° a 26°)<br/><code>predict(modelo7, data.frame('Z_FIN'=z, 'LAT'=17..26))</code><br/><code>lines(...); legend(...)</code>"]:::eval
+        
+        M7_Fit --> M7_Eval --> M7_Vis
+    end
+
+    P_Coords --> M4_Fit
+    P_Coords --> M5_Fit
+    P_Coords --> M6_Fit
+    P_Coords --> M7_Fit
+end
+
+M3_Vis --> P_Coords
+InRaster -.->|Insumo espacial de referencia| M7_Vis
+
+M2_Vis --> Fin([Fin del Análisis y Selección de Modelo LM]):::inicioFin
+M4_Eval --> Fin
+M5_Eval --> Fin
+M6_Eval --> Fin
+M7_Vis --> Fin
