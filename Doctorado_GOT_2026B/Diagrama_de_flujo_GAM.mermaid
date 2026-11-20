@@ -63,4 +63,33 @@ P_Coords --> P_Explore
 end
 
 subgraph S3 [3. Modelado Aditivo Generalizado GAM]
+
 direction TB
+
+subgraph M8 [Rama A: Modelo Univariado]
+    direction TB
+    M8_Fit["<b>3.1a Ajuste Modelo 8</b><br/>Temperatura en función de la altitud<br/><code>modelo8 <- gam(TNOV ~ s(Z_FIN), data = estaciones_temp)</code>"]:::modelo
+    M8_Eval["<b>3.2a Evaluación y Diagnóstico</b><br/>Revisar parámetros y residuales<br/><code>summary(modelo8)</code><br/><code>gam.check(modelo8)</code>"]:::eval
+    M8_Vis["<b>3.3a Visualización de efectos</b><br/>Graficar curva suave y residuales<br/><code>plot(modelo8, pages = 1, seWithMean = TRUE)</code><br/><code>plot(modelo8, pages = 1, residuals = TRUE)</code>"]:::eval
+    
+    M8_Fit --> M8_Eval --> M8_Vis
+end
+
+subgraph M9 [Rama B: Modelo Multivariado]
+    direction TB
+    M9_Fit["<b>3.1b Ajuste Modelo 9</b><br/>Incluir superficie espacial suave<br/><code>modelo9 <- gam(TNOV ~ s(Z_FIN) + s(LON, LAT, k = 100), ...)</code>"]:::modelo
+    M9_Eval["<b>3.2b Evaluación y Diagnóstico</b><br/>Revisar parámetros y residuales<br/><code>summary(modelo9)</code><br/><code>gam.check(modelo9)</code>"]:::eval
+    M9_Vis["<b>3.3b Visualización de superficies</b><br/>Graficar contornos bivariados y residuales<br/><code>plot(modelo9, pages = 2, residuals = TRUE)</code><br/><code>vis.gam(modelo9, view = c('LON','LAT'), plot.type = 'contour')</code><br/><code>vis.gam(modelo9, view = c('LAT','Z_FIN'), ...)</code><br/><code>vis.gam(modelo9, view = c('LON','Z_FIN'), ...)</code>"]:::eval
+    
+    M9_Fit --> M9_Eval --> M9_Vis
+end
+
+
+end
+
+P_Explore --> M8_Fit
+P_Explore --> M9_Fit
+
+InRaster -.->|Insumo espacial de referencia| M9_Vis
+M8_Vis --> Fin([Fin del Análisis y Evaluación]):::inicioFin
+M9_Vis --> Fin
