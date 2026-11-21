@@ -6,6 +6,7 @@ classDef proceso fill:#f4f7f6,stroke:#4e7a8c,stroke-width:1.5px,color:#1f2933
 classDef filtro fill:#fee2e2,stroke:#dc2626,stroke-width:1.5px,color:#7f1d1d
 classDef modelo fill:#e8f4f8,stroke:#0077b6,stroke-width:1.5px,color:#03045e
 classDef eval fill:#f3e8ff,stroke:#7e22ce,stroke-width:1.5px,color:#3b0764
+classDef salida fill:#dcfce7,stroke:#16a34a,stroke-width:1.5px,color:#14532d
 
 %% =====================================================================
 %% FLUJO IZQUIERDO: MODELOS ADITIVOS GENERALIZADOS (GAM)
@@ -33,22 +34,37 @@ subgraph Flujo_GAM [Flujo de Análisis: Modelos GAM]
 
     G_Tab & G_Vec --> G_Merge --> G_Filt --> G_Coord --> G_Expl
 
-    %% Nivel 3: Modelado Univariado
+    %% Nivel 3: Modelado Univariado y Multivariado
     G_M8_Fit[Ajuste Modelo 8: GAM univariado]:::modelo
-    G_M8_Eval[Evaluación y diagnóstico M8]:::eval
-    G_M8_Vis[Visualización de curva y residuales M8]:::eval
+    G_M8_Eval[Evaluación y visualización M8]:::eval
 
-    G_Expl --> G_M8_Fit --> G_M8_Eval --> G_M8_Vis
-
-    %% Nivel 4: Modelado Multivariado
     G_M9_Fit[Ajuste Modelo 9: GAM espacial 3D]:::modelo
-    G_M9_Eval[Evaluación y diagnóstico M9]:::eval
-    G_M9_Vis[Visualización de contornos M9]:::eval
+    G_M9_Eval[Evaluación y contornos M9]:::eval
 
-    G_M8_Vis --> G_M9_Fit --> G_M9_Eval --> G_M9_Vis
-    G_Ras -.-> G_M9_Vis
+    G_Expl --> G_M8_Fit --> G_M8_Eval
+    G_Expl --> G_M9_Fit --> G_M9_Eval
 
-    G_M9_Vis --> G_Fin([Fin: Selección GAM]):::titulo
+    %% Nivel 4: Análisis Comparativo de Residuales
+    G_Res_Calc[Cálculo de predicciones y residuales M8 y M9]:::eval
+    G_Res_Vis[Visualización de residuales: violín y burbujas espaciales]:::eval
+
+    G_M8_Eval & G_M9_Eval --> G_Res_Calc --> G_Res_Vis
+
+    %% Nivel 5: Preparación Raster y Predicción Espacial
+    G_Ras_Prep[Preparación de stack raster: MDE, Latitud y Longitud]:::proceso
+    G_Ras --> G_Ras_Prep
+    G_Res_Vis --> G_Ras_Prep
+
+    G_Pred8[Predicción espacial y mapa Modelo 8]:::modelo
+    G_Out8[/Exportar GeoTIFF GAM 8/]:::salida
+
+    G_Pred9[Predicción espacial y mapa Modelo 9]:::modelo
+    G_Out9[/Exportar GeoTIFF GAM 9/]:::salida
+
+    G_Ras_Prep --> G_Pred8 --> G_Out8
+    G_Ras_Prep --> G_Pred9 --> G_Out9
+
+    G_Out8 & G_Out9 --> G_Fin([Fin: Mapas de Predicción GAM]):::titulo
 end
 
 %% =====================================================================
@@ -128,5 +144,6 @@ G_Merge ~~~ L_Merge
 G_Filt ~~~ L_Filt
 G_Expl ~~~ L_Expl
 G_M8_Fit ~~~ L_M2_Fit
-G_M9_Fit ~~~ L_Coord
+G_Res_Calc ~~~ L_Coord
+G_Ras_Prep ~~~ L_M7_Fit
 G_Fin ~~~ L_Fin
