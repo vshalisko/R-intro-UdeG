@@ -1,0 +1,132 @@
+flowchart TD
+%% Definición de estilos
+classDef titulo fill:#2b5876,stroke:#1a3648,stroke-width:2px,color:#ffffff,font-weight:bold
+classDef entrada fill:#fef3c7,stroke:#d97706,stroke-width:1.5px,color:#78350f
+classDef proceso fill:#f4f7f6,stroke:#4e7a8c,stroke-width:1.5px,color:#1f2933
+classDef filtro fill:#fee2e2,stroke:#dc2626,stroke-width:1.5px,color:#7f1d1d
+classDef modelo fill:#e8f4f8,stroke:#0077b6,stroke-width:1.5px,color:#03045e
+classDef eval fill:#f3e8ff,stroke:#7e22ce,stroke-width:1.5px,color:#3b0764
+
+%% =====================================================================
+%% FLUJO IZQUIERDO: MODELOS ADITIVOS GENERALIZADOS (GAM)
+%% =====================================================================
+subgraph Flujo_GAM [Flujo de Análisis: Modelos GAM]
+    direction TB
+    G_Ini([Inicio: Análisis GAM]):::titulo
+
+    %% Nivel 1: Configuración y Entradas
+    G_Conf[Configuración de entorno y librerías]:::proceso
+    subgraph G_In [Entradas de Datos]
+        direction LR
+        G_Tab[/Tabla DBF/]:::entrada
+        G_Vec[/Vector SHP/]:::entrada
+        G_Ras[/Raster MDE/]:::entrada
+    end
+    G_Ini --> G_Conf
+    G_Conf --> G_Tab & G_Vec & G_Ras
+
+    %% Nivel 2: Preprocesamiento
+    G_Merge[Unión tabular-espacial]:::proceso
+    G_Filt[Filtrado de registros cero]:::proceso
+    G_Coord[Extracción de coordenadas]:::proceso
+    G_Expl[Exploración geoespacial]:::proceso
+
+    G_Tab & G_Vec --> G_Merge --> G_Filt --> G_Coord --> G_Expl
+
+    %% Nivel 3: Modelado Univariado
+    G_M8_Fit[Ajuste Modelo 8: GAM univariado]:::modelo
+    G_M8_Eval[Evaluación y diagnóstico M8]:::eval
+    G_M8_Vis[Visualización de curva y residuales M8]:::eval
+
+    G_Expl --> G_M8_Fit --> G_M8_Eval --> G_M8_Vis
+
+    %% Nivel 4: Modelado Multivariado
+    G_M9_Fit[Ajuste Modelo 9: GAM espacial 3D]:::modelo
+    G_M9_Eval[Evaluación y diagnóstico M9]:::eval
+    G_M9_Vis[Visualización de contornos M9]:::eval
+
+    G_M8_Vis --> G_M9_Fit --> G_M9_Eval --> G_M9_Vis
+    G_Ras -.-> G_M9_Vis
+
+    G_M9_Vis --> G_Fin([Fin: Selección GAM]):::titulo
+end
+
+%% =====================================================================
+%% FLUJO DERECHO: MODELOS LINEALES (LM)
+%% =====================================================================
+subgraph Flujo_LM [Flujo de Análisis: Modelos Lineales LM]
+    direction TB
+    L_Ini([Inicio: Análisis LM]):::titulo
+
+    %% Nivel 1: Configuración y Entradas
+    L_Conf[Configuración de entorno y librerías]:::proceso
+    subgraph L_In [Entradas de Datos]
+        direction LR
+        L_Tab[/Tabla DBF/]:::entrada
+        L_Vec[/Vector SHP/]:::entrada
+        L_Ras[/Raster MDE/]:::entrada
+    end
+    L_Ini --> L_Conf
+    L_Conf --> L_Tab & L_Vec & L_Ras
+
+    %% Nivel 2: Preprocesamiento y Depuración
+    L_Merge[Unión tabular-espacial]:::proceso
+    L_Filt[Filtrado de ceros e histogramas]:::proceso
+    L_Expl[Exploración bivariada]:::proceso
+    
+    L_Tab & L_Vec --> L_Merge --> L_Filt --> L_Expl
+
+    %% Nivel 3: Modelo Inicial y Outliers
+    L_M1_Fit[Ajuste Modelo 1: Lineal simple]:::modelo
+    L_M1_Eval[Evaluación y visualización M1]:::eval
+    L_Out[Diagnóstico avanzado y exclusión de influyentes]:::filtro
+
+    L_Expl --> L_M1_Fit --> L_M1_Eval --> L_Out
+
+    %% Nivel 4: Modelos Univariados Depurados
+    L_M2_Fit[Ajuste Modelo 2: Lineal depurado]:::modelo
+    L_M2_Eval[Evaluación y visualización M2]:::eval
+    
+    L_M3_Fit[Ajuste Modelo 3: Polinomial grado 2]:::modelo
+    L_M3_Eval[Evaluación y visualización M3]:::eval
+
+    L_Out --> L_M2_Fit --> L_M2_Eval
+    L_Out --> L_M3_Fit --> L_M3_Eval
+
+    %% Nivel 5: Modelos Multivariados
+    L_Coord[Extracción de coordenadas]:::proceso
+    L_M2_Eval & L_M3_Eval --> L_Coord
+
+    L_M4_Fit[Ajuste Modelo 4: Aditivo lineal]:::modelo
+    L_M4_Eval[Evaluación y ANOVA robusto M4]:::eval
+
+    L_M5_Fit[Ajuste Modelo 5: Mixto cuadrático]:::modelo
+    L_M5_Eval[Evaluación M5]:::eval
+
+    L_M6_Fit[Ajuste Modelo 6: Cuadrático completo]:::modelo
+    L_M6_Eval[Evaluación M6]:::eval
+
+    L_M7_Fit[Ajuste Modelo 7: Cuadrático depurado]:::modelo
+    L_M7_Eval[Evaluación, ANOVA y curvas M7]:::eval
+
+    L_Coord --> L_M4_Fit --> L_M4_Eval
+    L_Coord --> L_M5_Fit --> L_M5_Eval
+    L_Coord --> L_M6_Fit --> L_M6_Eval
+    L_Coord --> L_M7_Fit --> L_M7_Eval
+    L_Ras -.-> L_M7_Eval
+
+    L_M4_Eval & L_M5_Eval & L_M6_Eval & L_M7_Eval --> L_Fin([Fin: Selección LM]):::titulo
+end
+
+%% =====================================================================
+%% ENLACES INVISIBLES PARA ALINEACIÓN HORIZONTAL DE ETAPAS HOMÓLOGAS
+%% =====================================================================
+G_Ini ~~~ L_Ini
+G_Conf ~~~ L_Conf
+G_In ~~~ L_In
+G_Merge ~~~ L_Merge
+G_Filt ~~~ L_Filt
+G_Expl ~~~ L_Expl
+G_M8_Fit ~~~ L_M2_Fit
+G_M9_Fit ~~~ L_Coord
+G_Fin ~~~ L_Fin
