@@ -65,7 +65,7 @@ subgraph Flujo_GAM [Flujo de Análisis: Modelos GAM]
     G_M9_Fit --> G_Pred9
     G_Ras_Prep --> G_Pred9 --> G_Out9
 
-    G_Out8 & G_Out9 & G_Res_Vis --> G_Fin([Fin: Mapas de Predicción GAM]):::titulo
+    G_Out8 & G_Out9 & G_Res_Vis --> G_Fin([Fin: Seleccion de modelo GAM]):::titulo
 end
 
 %% =====================================================================
@@ -131,7 +131,7 @@ subgraph Flujo_LM [Flujo de Análisis: Modelos Lineales LM]
     L_Coord --> L_M6_Fit --> L_M6_Eval
     L_Coord --> L_M7_Fit --> L_M7_Eval
 
-    L_M2_Eval & L_M3_Eval & L_M4_Eval & L_M5_Eval & L_M6_Eval & L_M7_Eval --> L_Fin([Fin: Selección LM]):::titulo
+    L_M2_Eval & L_M3_Eval & L_M4_Eval & L_M5_Eval & L_M6_Eval & L_M7_Eval --> L_Fin([Fin: Selección del modelo LM]):::titulo
 end
 
 
