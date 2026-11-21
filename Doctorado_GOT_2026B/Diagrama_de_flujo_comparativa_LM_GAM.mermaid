@@ -53,7 +53,6 @@ subgraph Flujo_GAM [Flujo de Análisis: Modelos GAM]
     %% Nivel 5: Preparación Raster y Predicción Espacial
     G_Ras_Prep[Preparación de stack raster: MDE, Latitud y Longitud]:::proceso
     G_Ras --> G_Ras_Prep
-    G_Res_Vis --> G_Ras_Prep
 
     G_Pred8[Predicción espacial y mapa Modelo 8]:::modelo
     G_Out8[/Exportar GeoTIFF GAM 8/]:::salida
@@ -61,7 +60,9 @@ subgraph Flujo_GAM [Flujo de Análisis: Modelos GAM]
     G_Pred9[Predicción espacial y mapa Modelo 9]:::modelo
     G_Out9[/Exportar GeoTIFF GAM 9/]:::salida
 
+    G_Res_Vis --> G_Pred8
     G_Ras_Prep --> G_Pred8 --> G_Out8
+    G_Res_Vis --> G_Pred9
     G_Ras_Prep --> G_Pred9 --> G_Out9
 
     G_Out8 & G_Out9 --> G_Fin([Fin: Mapas de Predicción GAM]):::titulo
