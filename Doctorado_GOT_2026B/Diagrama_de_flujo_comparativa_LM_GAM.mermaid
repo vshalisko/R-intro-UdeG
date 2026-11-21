@@ -134,16 +134,4 @@ subgraph Flujo_LM [Flujo de Análisis: Modelos Lineales LM]
     L_M2_Eval & L_M3_Eval & L_M4_Eval & L_M5_Eval & L_M6_Eval & L_M7_Eval --> L_Fin([Fin: Selección LM]):::titulo
 end
 
-%% =====================================================================
-%% ENLACES INVISIBLES PARA ALINEACIÓN HORIZONTAL DE ETAPAS HOMÓLOGAS
-%% =====================================================================
-G_Ini ~~~ L_Ini
-G_Conf ~~~ L_Conf
-G_In ~~~ L_In
-G_Merge ~~~ L_Merge
-G_Filt ~~~ L_Filt
-G_Expl ~~~ L_Expl
-G_M8_Fit ~~~ L_M2_Fit
-G_Res_Calc ~~~ L_Coord
-G_Ras_Prep ~~~ L_M7_Fit
-G_Fin ~~~ L_Fin
+
