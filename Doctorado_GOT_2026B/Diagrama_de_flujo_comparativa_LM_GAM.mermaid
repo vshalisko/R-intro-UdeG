@@ -112,7 +112,7 @@ subgraph Flujo_LM [Flujo de Análisis: Modelos Lineales LM]
 
     %% Nivel 5: Modelos Multivariados
     L_Coord[Extracción de coordenadas]:::proceso
-    L_M2_Eval & L_M3_Eval --> L_Coord
+    L_Out & L_Out --> L_Coord
 
     L_M4_Fit[Ajuste Modelo 4: Aditivo lineal]:::modelo
     L_M4_Eval[Evaluación y ANOVA robusto M4]:::eval
@@ -130,9 +130,8 @@ subgraph Flujo_LM [Flujo de Análisis: Modelos Lineales LM]
     L_Coord --> L_M5_Fit --> L_M5_Eval
     L_Coord --> L_M6_Fit --> L_M6_Eval
     L_Coord --> L_M7_Fit --> L_M7_Eval
-    L_Ras -.-> L_M7_Eval
 
-    L_M4_Eval & L_M5_Eval & L_M6_Eval & L_M7_Eval --> L_Fin([Fin: Selección LM]):::titulo
+    L_M2_Eval & L_M3_Eval & L_M4_Eval & L_M5_Eval & L_M6_Eval & L_M7_Eval & L_Ras --> L_Fin([Fin: Selección LM]):::titulo
 end
 
 %% =====================================================================
