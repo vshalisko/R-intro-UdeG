@@ -14,6 +14,7 @@ library(foreign)
 library(raster)
 library(mgcv)
 library(RColorBrewer)
+library(vioplot)
 sessionInfo()
 ```
 
@@ -62,7 +63,7 @@ plot(modelo8, pages = 1, seWithMean = TRUE)
 plot(modelo8, pages = 1, residuals = TRUE)
 ```
 
-### Construir el modelo GAM de tres variables
+### Construir el modelo GAM de tres variables (combinación de spline de una y de dos variables)
 
 ```{r}
 modelo9 <- gam(TNOV ~ s(Z_FIN) + s(LON, LAT, k = 100), data = estaciones_temp)
@@ -77,81 +78,95 @@ vis.gam(modelo9, view = c("LON","Z_FIN"),
         plot.type = "contour", color = "cm")
 ```
 
-## Estudio de residuales
+## Analisis de residuales
 
 ```{r}
-estaciones_temp$m8_prediccion <- predict(modelo8, 
-                                         data = estaciones_temp)
-estaciones_temp$m8_residuales <- estaciones_temp$TNOV - estaciones_temp$m8_prediccion
+estaciones_temp$m8_pred <- predict(modelo8, 
+                                   datos = estaciones_temp)
+estaciones_temp$m8_resid <- estaciones_temp$TNOV - estaciones_temp$m8_pred
 
-estaciones_temp$m9_prediccion <- predict(modelo9, 
-                                         data = estaciones_temp)
-estaciones_temp$m9_residuales <- estaciones_temp$TNOV - estaciones_temp$m9_prediccion
+estaciones_temp$m9_pred <- predict(modelo9, 
+                                   datos = estaciones_temp)
+estaciones_temp$m9_resid <- estaciones_temp$TNOV - estaciones_temp$m9_pred
 
-tabla_residuales <- st_drop_geometry(estaciones_temp[,c("m8_residuales","m9_residuales")])
+columnas_residuales <- st_drop_geometry(
+  estaciones_temp[,c("m8_resid","m9_resid")]
+)
+vioplot(columnas_residuales,
+        col = c("#bef7ff", "#5da1ff"))
 
-library(vioplot)
-vioplot(tabla_residuales, col = c("#bef7ff", "#5da1ff"))
-
-bubble(as(estaciones_temp,"Spatial"), zcol='m8_residuales', 
-       do.sqrt = FALSE,
+bubble(as(estaciones_temp, "Spatial"),
+       zcol = "m8_resid",
        scales = list(draw = TRUE),
-       col = c("coral", "lightblue"), 
-       main = "Residuales modelo 8 (tamaño proporcional)",
-       key.space = list("right"))
+       col = c("coral", "lightblue"),
+       key.space = list("right"),
+       main = "Residuales modelo 8",
+       do.sqrt = FALSE)
 
-bubble(as(estaciones_temp,"Spatial"), zcol='m9_residuales', 
-       do.sqrt = FALSE,
+bubble(as(estaciones_temp, "Spatial"),
+       zcol = "m9_resid",
        scales = list(draw = TRUE),
-       col = c("coral", "lightblue"), 
-       main = "Residuales modelo 9 (tamaño proporcional)",
-       key.space = list("right"))
+       col = c("coral", "lightblue"),
+       key.space = list("right"),
+       main = "Residuales modelo 9",
+       do.sqrt = FALSE)
 ```
 
-## Preparar variables en raster
+## Preparar capas raster para la predicción
 
 ```{r}
-r_lat <- init(mde, 'y')
-r_lon <- init(mde, 'x')
-r_alt_lat_lon <- stack(mde, r_lat, r_lon)
-names(r_alt_lat_lon) <- c("Z_FIN", "LAT", "LON")
-r_alt_lat_lon
+raster_lat <- init(mde, "y")
+raster_lon <- init(mde, "x")
+raster_combinado <- stack(mde, raster_lat, raster_lon)
+names(raster_combinado) <- c("Z_FIN", "LAT", "LON")
+raster_combinado
 ```
 
+## Predicción con el modelo 8
 
-## Predicción en el Occidente de México
-
-```{r predict-8, cache=TRUE}
-r_TNOV_m8 <- predict(r_alt_lat_lon, modelo8)
-r_TNOV_m8
+```{r predmodelo8, cache=TRUE}
+raster_TNOV_m8 <- predict(raster_combinado, modelo8)
+raster_TNOV_m8
 ```
 
-```{r predict-9, cache=TRUE}
-r_TNOV_m9 <- predict(r_alt_lat_lon, modelo9)
-r_TNOV_m9
-```
-
-## Visualizar predicción
+## Visualización de predicción con modelo 8
 
 ```{r fig.height = 7}
-plot(r_TNOV_m8, 
+plot(raster_TNOV_m8,
      col = rev(brewer.pal(n = 10, name = "RdBu")),
-     main = "T de Noviembre GLM 8 (°C)")
-
-plot(r_TNOV_m9, 
-     col = rev(brewer.pal(n = 10, name = "RdBu")),
-     main = "T de Noviembre GLM 9 (°C)")
+     main = "Temperatura de noviembre GAM 8 (°C)")
 ```
 
-## Guardar rasters de predicción
+## Guardar predicción con modelo 8 en GeoTIFF
 
 ```{r}
-writeRaster(r_TNOV_m8,
-            filename = "prediccion_TNOV_GLM8_32bits.tif",
-            format = "GTiff", datatype = "FLT4S",
-            overwrite = TRUE)
-writeRaster(r_TNOV_m9,
-            filename = "prediccion_TNOV_GLM9_32bits.tif",
+writeRaster(raster_TNOV_m8,
+            filename = "prediccion_TNOV_GAM8.tif",
             format = "GTiff", datatype = "FLT4S",
             overwrite = TRUE)
 ```
+
+## Predicción con el modelo 9
+
+```{r predmodelo9, cache=TRUE}
+raster_TNOV_m9 <- predict(raster_combinado, modelo9)
+raster_TNOV_m9
+```
+
+## Visualización de predicción con modelo 9
+
+```{r fig.height = 7}
+plot(raster_TNOV_m9,
+     col = rev(brewer.pal(n = 10, name = "RdBu")),
+     main = "Temperatura de noviembre GAM 9 (°C)")
+```
+
+## Guardar predicción con modelo 9 en GeoTIFF
+
+```{r}
+writeRaster(raster_TNOV_m9,
+            filename = "prediccion_TNOV_GAM9.tif",
+            format = "GTiff", datatype = "FLT4S",
+            overwrite = TRUE)
+```
+
