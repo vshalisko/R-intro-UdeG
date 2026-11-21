@@ -115,23 +115,23 @@ subgraph Flujo_LM [Flujo de Análisis: Modelos Lineales LM]
     L_Out & L_Out --> L_Coord
 
     L_M4_Fit[Ajuste Modelo 4: Aditivo lineal]:::modelo
-    L_M4_Eval[Evaluación y ANOVA robusto M4]:::eval
+    L_M4_Eval[Evaluación y visualización M4]:::eval
 
     L_M5_Fit[Ajuste Modelo 5: Mixto cuadrático]:::modelo
-    L_M5_Eval[Evaluación M5]:::eval
+    L_M5_Eval[Evaluación y visualización M5]:::eval
 
     L_M6_Fit[Ajuste Modelo 6: Cuadrático completo]:::modelo
-    L_M6_Eval[Evaluación M6]:::eval
+    L_M6_Eval[Evaluación y visualización M6]:::eval
 
     L_M7_Fit[Ajuste Modelo 7: Cuadrático depurado]:::modelo
-    L_M7_Eval[Evaluación, ANOVA y curvas M7]:::eval
+    L_M7_Eval[Evaluación y visualización M7]:::eval
 
     L_Coord --> L_M4_Fit --> L_M4_Eval
     L_Coord --> L_M5_Fit --> L_M5_Eval
     L_Coord --> L_M6_Fit --> L_M6_Eval
     L_Coord --> L_M7_Fit --> L_M7_Eval
 
-    L_M2_Eval & L_M3_Eval & L_M4_Eval & L_M5_Eval & L_M6_Eval & L_M7_Eval & L_Ras --> L_Fin([Fin: Selección LM]):::titulo
+    L_M2_Eval & L_M3_Eval & L_M4_Eval & L_M5_Eval & L_M6_Eval & L_M7_Eval --> L_Fin([Fin: Selección LM]):::titulo
 end
 
 %% =====================================================================
