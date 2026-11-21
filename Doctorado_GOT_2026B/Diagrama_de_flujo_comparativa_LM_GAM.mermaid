@@ -60,9 +60,9 @@ subgraph Flujo_GAM [Flujo de Análisis: Modelos GAM]
     G_Pred9[Predicción espacial y mapa Modelo 9]:::modelo
     G_Out9[/Exportar GeoTIFF GAM 9/]:::salida
 
-    G_Res_Vis --> G_Pred8
+    G_M8_Fit --> G_Pred8
     G_Ras_Prep --> G_Pred8 --> G_Out8
-    G_Res_Vis --> G_Pred9
+    G_M9_Fit --> G_Pred9
     G_Ras_Prep --> G_Pred9 --> G_Out9
 
     G_Out8 & G_Out9 --> G_Fin([Fin: Mapas de Predicción GAM]):::titulo
