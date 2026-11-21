@@ -36,10 +36,10 @@ subgraph Flujo_GAM [Flujo de Análisis: Modelos GAM]
 
     %% Nivel 3: Modelado Univariado y Multivariado
     G_M8_Fit[Ajuste Modelo 8: GAM univariado]:::modelo
-    G_M8_Eval[Evaluación y visualización M8]:::eval
+    G_M8_Eval[Evaluación y visualización de splines M8]:::eval
 
     G_M9_Fit[Ajuste Modelo 9: GAM espacial 3D]:::modelo
-    G_M9_Eval[Evaluación y contornos M9]:::eval
+    G_M9_Eval[Evaluación y visualización de splines M9]:::eval
 
     G_Expl --> G_M8_Fit --> G_M8_Eval
     G_Expl --> G_M9_Fit --> G_M9_Eval
@@ -112,7 +112,7 @@ subgraph Flujo_LM [Flujo de Análisis: Modelos Lineales LM]
 
     %% Nivel 5: Modelos Multivariados
     L_Coord[Extracción de coordenadas]:::proceso
-    L_Out & L_Out --> L_Coord
+    L_Out --> L_Coord
 
     L_M4_Fit[Ajuste Modelo 4: Aditivo lineal]:::modelo
     L_M4_Eval[Evaluación y visualización M4]:::eval
